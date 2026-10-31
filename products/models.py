@@ -163,12 +163,54 @@ class DiscountConfiguration(models.Model):
         ('FIXED', 'Fixed Amount'),
     ]
 
+    DISCOUNT_SCOPE_CHOICES = [
+        ('PRODUCT', 'Specific Product'),
+        ('SUBSCRIPTION', 'Entire Subscription'),
+    ]
+
     name = models.CharField(max_length=200)
     code = models.CharField(max_length=50, unique=True)
-    discount_type = models.CharField(max_length=20, choices=DISCOUNT_TYPE_CHOICES)
-    value = models.DecimalField(max_digits=10, decimal_places=2, help_text="Percentage or fixed amount")
+
+    discount_type = models.CharField(
+        max_length=20,
+        choices=DISCOUNT_TYPE_CHOICES
+    )
+
+    value = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        help_text="Percentage or fixed amount"
+    )
+
+    discount_scope = models.CharField(
+        max_length=20,
+        choices=DISCOUNT_SCOPE_CHOICES,
+        default='SUBSCRIPTION'
+    )
+
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='discount_configurations'
+    )
+
+    minimum_purchase_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0
+    )
+
+    minimum_quantity = models.PositiveIntegerField(default=1)
+
+    usage_limit = models.PositiveIntegerField(null=True, blank=True)
+
+    usage_count = models.PositiveIntegerField(default=0)
+
     valid_from = models.DateField(null=True, blank=True)
     valid_until = models.DateField(null=True, blank=True)
+
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
