@@ -69,16 +69,35 @@ class ProductVariant(models.Model):
         ordering = ['product', 'name']
 class SubscriptionPlan(models.Model):
     BILLING_CYCLE_CHOICES = [
+        ('DAILY', 'Daily'),
+        ('WEEKLY', 'Weekly'),
         ('MONTHLY', 'Monthly'),
-        ('QUARTERLY', 'Quarterly'),
-        ('ANNUALLY', 'Annually'),
+        ('YEARLY', 'Yearly'),
     ]
 
-    product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name='plans')
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.PROTECT,
+        related_name='plans'
+    )
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
-    billing_cycle = models.CharField(max_length=20, choices=BILLING_CYCLE_CHOICES, default='MONTHLY')
+
+    billing_cycle = models.CharField(
+        max_length=20,
+        choices=BILLING_CYCLE_CHOICES,
+        default='MONTHLY'
+    )
+
     base_price = models.DecimalField(max_digits=10, decimal_places=2)
+
+    minimum_quantity = models.PositiveIntegerField(default=1)
+
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
+
+    auto_close = models.BooleanField(default=False)
+
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -87,7 +106,10 @@ class SubscriptionPlan(models.Model):
         return f"{self.product.name} — {self.name} ({self.get_billing_cycle_display()})"
 
     def get_cycle_months(self):
-        return {'MONTHLY': 1, 'QUARTERLY': 3, 'ANNUALLY': 12}.get(self.billing_cycle, 1)
+        return {
+            'MONTHLY': 1,
+            'YEARLY': 12
+        }.get(self.billing_cycle, 0)
 
     class Meta:
         ordering = ['product', 'name']
