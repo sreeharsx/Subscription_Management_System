@@ -7,6 +7,7 @@ from decimal import Decimal
 from django.db import transaction, IntegrityError
 from django.utils import timezone
 from subscriptions.models import Subscription
+from accounts.services import log_activity
 from .models import Invoice, Payment
 
 
@@ -97,6 +98,7 @@ def record_payment(invoice: Invoice, amount: Decimal, payment_method: str,
         invoice.amount_paid = invoice.amount_paid + amount
         invoice.update_payment_status()
         invoice.save()
+        log_activity(recorded_by, 'PAYMENT_RECORDED', payment, f"Payment of ₹{amount} recorded for {invoice.invoice_number}")
 
     return payment
 

@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
+from accounts.services import log_activity
 from .models import Quotation
 from .forms import QuotationForm
 
@@ -122,6 +123,7 @@ def quotation_accept(request, pk):
         # Create subscription
         from subscriptions.services import create_subscription_from_quotation
         subscription = create_subscription_from_quotation(quotation)
+        log_activity(request.user, 'QUOTATION_ACCEPTED', quotation, f"Accepted quotation; created SUB-{subscription.pk:04d}")
         messages.success(request, f"Quotation accepted. Subscription #{subscription.pk} created.")
         return redirect('subscriptions:subscription_detail', pk=subscription.pk)
     return redirect('quotations:quotation_detail', pk=pk)
@@ -137,5 +139,6 @@ def quotation_reject(request, pk):
     if request.method == 'POST':
         quotation.status = 'REJECTED'
         quotation.save()
+        log_activity(request.user, 'QUOTATION_REJECTED', quotation, f"Quotation QT-{quotation.pk:04d} rejected.")
         messages.success(request, "Quotation rejected.")
     return redirect('quotations:quotation_detail', pk=pk)

@@ -2,7 +2,8 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages
-from .models import CustomerProfile
+from .models import CustomerProfile, AuditLog
+from .services import log_activity
 from .forms import CustomerProfileForm, CustomerUserForm
 
 
@@ -41,6 +42,7 @@ def customer_create(request):
             profile = profile_form.save(commit=False)
             profile.user = user
             profile.save()
+            log_activity(request.user, 'CUSTOMER_CREATED', profile, f"Customer {user.username} registered.")
             messages.success(request, f"Customer '{user.get_full_name() or user.username}' created successfully.")
             return redirect('accounts:customer_list')
     else:
@@ -81,3 +83,11 @@ def customer_edit(request, pk):
         'title': 'Edit Customer',
         'edit': True,
     })
+
+
+@login_required
+@staff_required
+def activity_log_list(request):
+    logs = AuditLog.objects.select_related('actor').all()[:100]
+    return render(request, 'accounts/activity_log.html', {'logs': logs})
+
