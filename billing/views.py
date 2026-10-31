@@ -5,8 +5,9 @@ from django.core.exceptions import PermissionDenied
 from django.db.models import Sum, Q
 from datetime import date
 from decimal import Decimal
+import uuid
 from .models import Invoice, Payment
-from .forms import PaymentForm, RunBillingForm
+from .forms import PaymentForm, RunBillingForm, CustomerPaymentForm
 from .services import run_billing_for_all_active_subscriptions, record_payment
 
 
@@ -62,9 +63,59 @@ def invoice_list(request):
 def invoice_detail(request, pk):
     invoice = get_invoice_for_user(request, pk)
     payments = invoice.payments.all()
+    can_pay = request.user.is_staff or request.user.is_superuser
+    can_customer_pay = (
+        not can_pay and
+        invoice.status in ('ISSUED', 'OVERDUE', 'PARTIALLY_PAID') and
+        invoice.outstanding_balance > Decimal('0.00')
+    )
     return render(request, 'billing/invoice_detail.html', {
         'invoice': invoice,
         'payments': payments,
+        'can_pay': can_pay,
+        'can_customer_pay': can_customer_pay,
+    })
+
+
+@login_required
+def customer_pay_invoice_view(request, pk):
+    invoice = get_invoice_for_user(request, pk)
+
+    # Check if invoice is in a payable state
+    if invoice.status == 'VOID':
+        messages.error(request, "Cannot pay a cancelled/void invoice.")
+        return redirect('billing:invoice_detail', pk=pk)
+    if invoice.status == 'PAID' or invoice.outstanding_balance <= Decimal('0.00'):
+        messages.info(request, "This invoice is already fully paid.")
+        return redirect('billing:invoice_detail', pk=pk)
+
+    if request.method == 'POST':
+        form = CustomerPaymentForm(request.POST)
+        if form.is_valid():
+            payment_method = form.cleaned_data['payment_method']
+            # Outstanding balance is verified and taken strictly from the server-side model
+            amount = invoice.outstanding_balance
+            ref_no = f"SIM-{uuid.uuid4().hex[:8].upper()}"
+            try:
+                record_payment(
+                    invoice=invoice,
+                    amount=amount,
+                    payment_method=payment_method,
+                    payment_date=date.today(),
+                    recorded_by=request.user,
+                    reference_number=ref_no,
+                    notes="Customer self-service payment (Demo Simulation)",
+                )
+                messages.success(request, f"Payment of ₹{amount} processed successfully! Reference: {ref_no}")
+                return redirect('billing:invoice_detail', pk=pk)
+            except ValueError as e:
+                messages.error(request, str(e))
+    else:
+        form = CustomerPaymentForm()
+
+    return render(request, 'billing/customer_pay.html', {
+        'invoice': invoice,
+        'form': form,
     })
 
 
@@ -136,4 +187,8 @@ def payment_list(request):
         'invoice__subscription__customer__user',
         'recorded_by',
     ).all()
-    return render(request, 'billing/payment_list.html', {'payments': payments})
+    total_received = Payment.objects.filter(status='COMPLETED').aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    return render(request, 'billing/payment_list.html', {
+        'payments': payments,
+        'total_received': total_received,
+    })
