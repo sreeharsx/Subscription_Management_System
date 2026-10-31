@@ -317,3 +317,45 @@ class CompleteWorkflowTestCase(TestCase):
         response = client.get('/dashboard/')
         self.assertEqual(response.context['total_revenue'], Decimal('400.00'))
         self.assertEqual(response.context['total_outstanding'], Decimal('662.00'))
+
+    def test_record_payment_view_rendering_and_submission(self):
+        """
+        Test that /billing/invoices/<pk>/pay/ loads record_payment.html with 200 OK,
+        displays invoice details, and processes payment submission.
+        """
+        client = Client()
+        client.login(username='staff', password='staffpass123')
+
+        quotation = Quotation.objects.create(
+            customer=self.cust1,
+            plan=self.plan,
+            tax=self.tax,
+            discount=self.discount,
+            status='ACCEPTED'
+        )
+        sub = create_subscription_from_quotation(quotation)
+        invoice, _ = generate_invoice_for_subscription(sub, billing_date=date(2026, 10, 31))
+
+        # 1. GET returns 200 and uses billing/record_payment.html
+        response = client.get(f'/billing/invoices/{invoice.pk}/pay/')
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'billing/record_payment.html')
+        self.assertContains(response, invoice.invoice_number)
+        self.assertContains(response, 'Record Payment')
+
+        # 2. POST valid payment
+        post_data = {
+            'amount': '500.00',
+            'payment_method': 'BANK_TRANSFER',
+            'payment_date': '2026-10-31',
+            'reference_number': 'TXN123',
+            'notes': 'Test payment',
+        }
+        post_res = client.post(f'/billing/invoices/{invoice.pk}/pay/', post_data)
+        self.assertEqual(post_res.status_code, 302)
+        self.assertEqual(post_res.url, f'/billing/invoices/{invoice.pk}/')
+
+        invoice.refresh_from_db()
+        self.assertEqual(invoice.amount_paid, Decimal('500.00'))
+        self.assertEqual(invoice.status, 'PARTIALLY_PAID')
+
