@@ -2,8 +2,8 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
-from .models import Product, SubscriptionPlan, TaxConfiguration, DiscountConfiguration
-from .forms import ProductForm, SubscriptionPlanForm, TaxConfigurationForm, DiscountConfigurationForm
+from .models import Product, ProductVariant, SubscriptionPlan, TaxConfiguration, DiscountConfiguration
+from .forms import ProductForm,ProductVariantForm, SubscriptionPlanForm, TaxConfigurationForm, DiscountConfigurationForm
 
 
 def staff_required(view_func):
@@ -45,7 +45,13 @@ def product_create(request):
 def product_detail(request, pk):
     product = get_object_or_404(Product, pk=pk)
     plans = product.plans.all()
-    return render(request, 'products/product_detail.html', {'product': product, 'plans': plans})
+    variants = product.variants.all()
+
+    return render(request, 'products/product_detail.html', {
+        'product': product,
+        'plans': plans,
+        'variants': variants
+    })
 
 
 @login_required
@@ -62,6 +68,50 @@ def product_edit(request, pk):
         form = ProductForm(instance=product)
     return render(request, 'products/product_form.html', {'form': form, 'title': 'Edit Product', 'edit': True})
 
+# --- Product Variants ---
+
+@login_required
+@staff_required
+def variant_create(request, product_pk):
+    product = get_object_or_404(Product, pk=product_pk)
+
+    if request.method == 'POST':
+        form = ProductVariantForm(request.POST)
+        if form.is_valid():
+            variant = form.save(commit=False)
+            variant.product = product
+            variant.save()
+            messages.success(request, "Product variant created.")
+            return redirect('products:product_detail', pk=product.pk)
+    else:
+        form = ProductVariantForm()
+
+    return render(request, 'products/variant_form.html', {
+        'form': form,
+        'product': product,
+        'title': 'Add Product Variant'
+    })
+
+
+@login_required
+@staff_required
+def variant_edit(request, pk):
+    variant = get_object_or_404(ProductVariant, pk=pk)
+
+    if request.method == 'POST':
+        form = ProductVariantForm(request.POST, instance=variant)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Product variant updated.")
+            return redirect('products:product_detail', pk=variant.product.pk)
+    else:
+        form = ProductVariantForm(instance=variant)
+
+    return render(request, 'products/variant_form.html', {
+        'form': form,
+        'product': variant.product,
+        'title': 'Edit Product Variant'
+    })
 
 # --- Plans ---
 
