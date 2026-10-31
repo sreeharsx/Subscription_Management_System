@@ -6,7 +6,6 @@ from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from .models import Subscription
 from .services import renew_subscription
-from accounts.services import log_activity
 
 
 def staff_required(view_func):
@@ -36,7 +35,7 @@ def subscription_list(request):
     search_query = request.GET.get('q', '').strip()
     status_filter = request.GET.get('status', '').strip().upper()
 
-    # Initial queryset with strict role-based access control
+    # Base queryset with strict role-based access control
     if request.user.is_staff or request.user.is_superuser:
         subs = Subscription.objects.select_related('customer__user', 'plan__product').all()
     elif hasattr(request.user, 'customer_profile'):
@@ -87,7 +86,6 @@ def subscription_pause(request, pk):
     if sub.can_transition_to('PAUSED'):
         sub.status = 'PAUSED'
         sub.save()
-        log_activity(request.user, 'SUBSCRIPTION_PAUSED', sub, f"Subscription SUB-{sub.pk:04d} paused.")
         messages.success(request, "Subscription paused.")
     else:
         messages.error(request, f"Cannot pause a {sub.status} subscription.")
@@ -102,7 +100,6 @@ def subscription_resume(request, pk):
     if sub.can_transition_to('ACTIVE'):
         sub.status = 'ACTIVE'
         sub.save()
-        log_activity(request.user, 'SUBSCRIPTION_RESUMED', sub, f"Subscription SUB-{sub.pk:04d} resumed to active.")
         messages.success(request, "Subscription resumed.")
     else:
         messages.error(request, f"Cannot resume a {sub.status} subscription.")
@@ -117,7 +114,6 @@ def subscription_cancel(request, pk):
     if sub.can_transition_to('CANCELLED'):
         sub.status = 'CANCELLED'
         sub.save()
-        log_activity(request.user, 'SUBSCRIPTION_CANCELLED', sub, f"Subscription SUB-{sub.pk:04d} cancelled.")
         messages.success(request, "Subscription cancelled.")
     else:
         messages.error(request, f"Cannot cancel a {sub.status} subscription.")
@@ -131,7 +127,6 @@ def subscription_renew(request, pk):
     sub = get_object_or_404(Subscription, pk=pk)
     try:
         renew_subscription(sub)
-        log_activity(request.user, 'SUBSCRIPTION_RENEWED', sub, f"Subscription SUB-{sub.pk:04d} renewed.")
         messages.success(request, f"Subscription SUB-{sub.pk:04d} successfully renewed and reactivated.")
     except ValueError as e:
         messages.error(request, str(e))
