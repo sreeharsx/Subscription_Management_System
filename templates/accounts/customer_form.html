@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="form-card">
+      <h5 class="fw-semibold mb-4">{{ title }}</h5>
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {% if not edit %}
+        <h6 class="text-muted fw-semibold mb-3 small text-uppercase">Login Details</h6>
+        {% for field in user_form %}
+        <div class="mb-3">
+          <label class="form-label fw-semibold small">{{ field.label }}</label>
+          {{ field }}
+          {% if field.errors %}<div class="text-danger small mt-1">{{ field.errors.0 }}</div>{% endif %}
+        </div>
+        {% endfor %}
+        <hr>
+        {% endif %}
+        <h6 class="text-muted fw-semibold mb-3 small text-uppercase">Profile Details</h6>
+        {% for field in profile_form %}
+        <div class="mb-3">
+          <label class="form-label fw-semibold small">{{ field.label }}</label>
+          {{ field }}
+          {% if field.errors %}<div class="text-danger small mt-1">{{ field.errors.0 }}</div>{% endif %}
+        </div>
+        {% endfor %}
+        <div class="d-flex gap-2 mt-4">
+          <button type="submit" class="btn btn-primary">Save Customer</button>
+          <a href="{% url 'accounts:customer_list' %}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

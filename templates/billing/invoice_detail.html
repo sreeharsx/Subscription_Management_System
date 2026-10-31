@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}{{ invoice.invoice_number }}{% endblock %}
+{% block page_title %}Invoice Detail{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h5 class="fw-semibold mb-1">{{ invoice.invoice_number }}</h5>
+    <span class="status-badge badge-{{ invoice.status|lower }}">{{ invoice.get_status_display }}</span>
+  </div>
+  {% if can_pay and invoice.status != 'PAID' and invoice.status != 'VOID' %}
+  <a href="{% url 'billing:record_payment' invoice.pk %}" class="btn btn-primary"><i class="bi bi-credit-card me-1"></i>Record Payment</a>
+  {% endif %}
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="form-card mb-4">
+      <h6 class="fw-semibold mb-3">Invoice Details</h6>
+      <dl class="row mb-0">
+        <dt class="col-5 text-muted small">Customer</dt><dd class="col-7">{{ invoice.subscription.customer }}</dd>
+        <dt class="col-5 text-muted small">Subscription</dt><dd class="col-7"><a href="{% url 'subscriptions:subscription_detail' invoice.subscription.pk %}" class="text-decoration-none">SUB-{{ invoice.subscription.pk|stringformat:"04d" }}</a></dd>
+        <dt class="col-5 text-muted small">Billing Period</dt><dd class="col-7">{{ invoice.billing_period_key }}</dd>
+        <dt class="col-5 text-muted small">Issue Date</dt><dd class="col-7">{{ invoice.issue_date }}</dd>
+        <dt class="col-5 text-muted small">Due Date</dt><dd class="col-7 {% if invoice.status == 'OVERDUE' %}text-danger fw-semibold{% endif %}">{{ invoice.due_date }}</dd>
+        {% if invoice.paid_date %}<dt class="col-5 text-muted small">Paid Date</dt><dd class="col-7">{{ invoice.paid_date }}</dd>{% endif %}
+      </dl>
+    </div>
+  </div>
+  <div class="col-lg-7">
+    <div class="form-card mb-4">
+      <h6 class="fw-semibold mb-3">Amount Breakdown</h6>
+      <table class="table mb-0">
+        <tbody>
+          <tr><td class="text-muted">Base Amount</td><td class="text-end">₹{{ invoice.base_amount|floatformat:2 }}</td></tr>
+          <tr><td class="text-muted">Discount</td><td class="text-end text-success">− ₹{{ invoice.discount_amount|floatformat:2 }}</td></tr>
+          <tr><td class="text-muted">Tax</td><td class="text-end">+ ₹{{ invoice.tax_amount|floatformat:2 }}</td></tr>
+          <tr class="fw-bold border-top"><td>Total</td><td class="text-end fs-5">₹{{ invoice.total_amount|floatformat:2 }}</td></tr>
+          <tr><td class="text-muted">Amount Paid</td><td class="text-end text-success">₹{{ invoice.amount_paid|floatformat:2 }}</td></tr>
+          <tr class="{% if invoice.outstanding_balance > 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
+            <td>Outstanding Balance</td><td class="text-end fs-5">₹{{ invoice.outstanding_balance|floatformat:2 }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    {% if payments %}
+    <div class="table-card">
+      <div class="p-3 border-bottom"><h6 class="fw-semibold mb-0">Payment History</h6></div>
+      <table class="table table-hover mb-0">
+        <thead><tr><th>Date</th><th>Method</th><th>Reference</th><th>Amount</th></tr></thead>
+        <tbody>
+          {% for pmt in payments %}
+          <tr>
+            <td>{{ pmt.payment_date }}</td>
+            <td>{{ pmt.get_payment_method_display }}</td>
+            <td>{{ pmt.reference_number|default:"—" }}</td>
+            <td class="fw-semibold text-success">₹{{ pmt.amount|floatformat:2 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+</div>
+<a href="{% url 'billing:invoice_list' %}" class="btn btn-sm btn-outline-secondary mt-3"><i class="bi bi-arrow-left me-1"></i>Back</a>
+{% endblock %}

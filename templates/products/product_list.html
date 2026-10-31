@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Products{% endblock %}
+{% block page_title %}Products{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h5 class="fw-semibold mb-0">Products</h5>
+  {% if user.is_staff or user.is_superuser %}
+  <a href="{% url 'products:product_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Add Product</a>
+  {% endif %}
+</div>
+<div class="row g-3">
+  {% for product in products %}
+  <div class="col-md-4">
+    <div class="stat-card h-100">
+      <div class="d-flex justify-content-between align-items-start mb-2">
+        <h6 class="fw-semibold mb-0">{{ product.name }}</h6>
+        {% if product.is_active %}<span class="status-badge badge-active">Active</span>{% else %}<span class="status-badge badge-cancelled">Inactive</span>{% endif %}
+      </div>
+      <p class="text-muted small mb-3">{{ product.description|default:"No description"|truncatechars:80 }}</p>
+      <div class="d-flex justify-content-between align-items-center">
+        <span class="text-muted small">{{ product.plans.count }} plan{{ product.plans.count|pluralize }}</span>
+        <a href="{% url 'products:product_detail' product.pk %}" class="btn btn-sm btn-outline-primary">View</a>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-12 text-center text-muted py-5">No products yet. <a href="{% url 'products:product_create' %}">Create one</a>.</div>
+  {% endfor %}
+</div>
+{% endblock %}

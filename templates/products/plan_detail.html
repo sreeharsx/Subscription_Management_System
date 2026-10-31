@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}{{ plan.name }}{% endblock %}
+{% block page_title %}Plan Detail{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h5 class="fw-semibold mb-0">{{ plan.name }}</h5>
+  {% if user.is_staff or user.is_superuser %}
+  <a href="{% url 'products:plan_edit' plan.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
+  {% endif %}
+</div>
+<div class="form-card col-lg-5">
+  <dl class="row mb-0">
+    <dt class="col-5 text-muted small">Product</dt><dd class="col-7">{{ plan.product.name }}</dd>
+    <dt class="col-5 text-muted small">Billing Cycle</dt><dd class="col-7">{{ plan.get_billing_cycle_display }}</dd>
+    <dt class="col-5 text-muted small">Base Price</dt><dd class="col-7 fw-semibold">₹{{ plan.base_price|floatformat:2 }}</dd>
+    <dt class="col-5 text-muted small">Status</dt>
+    <dd class="col-7">{% if plan.is_active %}<span class="status-badge badge-active">Active</span>{% else %}<span class="status-badge badge-cancelled">Inactive</span>{% endif %}</dd>
+  </dl>
+  {% if plan.description %}<p class="text-muted small mt-3">{{ plan.description }}</p>{% endif %}
+</div>
+<a href="{% url 'products:plan_list' %}" class="btn btn-sm btn-outline-secondary mt-3"><i class="bi bi-arrow-left me-1"></i>Back</a>
+{% endblock %}

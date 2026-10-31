@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}BrightLoop{% endblock %} | Subscription Management</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --sidebar-bg: #0f172a;
+      --sidebar-text: #94a3b8;
+      --sidebar-active: #6366f1;
+      --sidebar-hover: #1e293b;
+      --sidebar-width: 260px;
+      --topbar-height: 60px;
+    }
+    body { background: #f8fafc; font-family: 'Segoe UI', system-ui, sans-serif; }
+    /* Sidebar */
+    .sidebar {
+      position: fixed; top: 0; left: 0; bottom: 0;
+      width: var(--sidebar-width); background: var(--sidebar-bg);
+      z-index: 1000; overflow-y: auto; transition: transform .3s;
+    }
+    .sidebar-brand {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid #1e293b;
+      color: #fff;
+      font-size: 1.1rem; font-weight: 700;
+      display: flex; align-items: center; gap: .6rem;
+      text-decoration: none;
+    }
+    .sidebar-brand .logo-circle {
+      width: 34px; height: 34px; border-radius: 8px;
+      background: linear-gradient(135deg, #6366f1, #818cf8);
+      display: flex; align-items: center; justify-content: center;
+      font-size: .9rem; color: #fff;
+    }
+    .sidebar-section {
+      padding: .5rem 1rem .25rem;
+      font-size: .7rem; font-weight: 600;
+      color: #475569; text-transform: uppercase; letter-spacing: .08em;
+    }
+    .sidebar .nav-link {
+      color: var(--sidebar-text); padding: .55rem 1.25rem;
+      border-radius: 8px; margin: 1px 8px;
+      display: flex; align-items: center; gap: .65rem;
+      font-size: .875rem; transition: all .15s;
+    }
+    .sidebar .nav-link:hover { background: var(--sidebar-hover); color: #e2e8f0; }
+    .sidebar .nav-link.active { background: var(--sidebar-active); color: #fff; }
+    .sidebar .nav-link .bi { font-size: 1rem; }
+    /* Main content */
+    .main-wrapper {
+      margin-left: var(--sidebar-width);
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+    }
+    .topbar {
+      height: var(--topbar-height);
+      background: #fff;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 1.5rem;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .topbar .page-title { font-size: 1rem; font-weight: 600; color: #1e293b; }
+    .content-area { padding: 1.75rem; flex: 1; }
+    /* Cards */
+    .stat-card {
+      border: none; border-radius: 12px; padding: 1.5rem;
+      background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    }
+    .stat-card .stat-icon {
+      width: 48px; height: 48px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem;
+    }
+    .stat-card .stat-value { font-size: 1.75rem; font-weight: 700; color: #0f172a; }
+    .stat-card .stat-label { font-size: .8rem; color: #64748b; margin-top: .15rem; }
+    /* Tables */
+    .table-card { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); overflow: hidden; }
+    .table-card .table { margin: 0; }
+    .table-card .table th { background: #f8fafc; border-top: none; font-size: .8rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: .05em; }
+    .table > :not(caption) > * > * { padding: .8rem 1.25rem; }
+    /* Badges */
+    .badge-active { background: #dcfce7; color: #16a34a; }
+    .badge-paused { background: #fef9c3; color: #ca8a04; }
+    .badge-cancelled { background: #fee2e2; color: #dc2626; }
+    .badge-expired { background: #f1f5f9; color: #64748b; }
+    .badge-draft { background: #f1f5f9; color: #64748b; }
+    .badge-sent { background: #dbeafe; color: #1d4ed8; }
+    .badge-accepted { background: #dcfce7; color: #16a34a; }
+    .badge-rejected { background: #fee2e2; color: #dc2626; }
+    .badge-issued { background: #dbeafe; color: #1d4ed8; }
+    .badge-paid { background: #dcfce7; color: #16a34a; }
+    .badge-partially_paid { background: #fef9c3; color: #ca8a04; }
+    .badge-overdue { background: #fee2e2; color: #dc2626; }
+    .badge-void { background: #f1f5f9; color: #94a3b8; }
+    .status-badge {
+      display: inline-flex; align-items: center; gap: .3rem;
+      padding: .25rem .65rem; border-radius: 999px;
+      font-size: .75rem; font-weight: 600;
+    }
+    /* Buttons */
+    .btn-primary { background: #6366f1; border-color: #6366f1; }
+    .btn-primary:hover { background: #4f46e5; border-color: #4f46e5; }
+    /* Forms */
+    .form-card { background: #fff; border-radius: 12px; padding: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    /* Alerts */
+    .messages-container { position: fixed; top: 70px; right: 1rem; z-index: 9999; width: 360px; }
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-100%); }
+      .main-wrapper { margin-left: 0; }
+    }
+  </style>
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+{% if user.is_authenticated %}
+<!-- Sidebar -->
+<nav class="sidebar">
+  <a class="sidebar-brand" href="{% url 'dashboard:index' %}">
+    <div class="logo-circle"><i class="bi bi-infinity"></i></div>
+    BrightLoop
+  </a>
+  <div class="pt-2">
+    <div class="sidebar-section">Main</div>
+    <a href="{% url 'dashboard:index' %}" class="nav-link {% if request.resolver_match.app_name == 'dashboard' %}active{% endif %}">
+      <i class="bi bi-speedometer2"></i> Dashboard
+    </a>
+
+    {% if user.is_staff or user.is_superuser %}
+    <div class="sidebar-section mt-2">Catalogue</div>
+    <a href="{% url 'products:product_list' %}" class="nav-link {% if request.resolver_match.app_name == 'products' and 'plan' not in request.path and 'tax' not in request.path and 'discount' not in request.path %}active{% endif %}">
+      <i class="bi bi-box-seam"></i> Products
+    </a>
+    <a href="{% url 'products:plan_list' %}" class="nav-link {% if 'plans' in request.path %}active{% endif %}">
+      <i class="bi bi-layers"></i> Plans
+    </a>
+    <a href="{% url 'products:tax_list' %}" class="nav-link {% if 'taxes' in request.path %}active{% endif %}">
+      <i class="bi bi-percent"></i> Taxes
+    </a>
+    <a href="{% url 'products:discount_list' %}" class="nav-link {% if 'discounts' in request.path %}active{% endif %}">
+      <i class="bi bi-tag"></i> Discounts
+    </a>
+    <div class="sidebar-section mt-2">CRM</div>
+    <a href="{% url 'accounts:customer_list' %}" class="nav-link {% if request.resolver_match.app_name == 'accounts' %}active{% endif %}">
+      <i class="bi bi-people"></i> Customers
+    </a>
+    <a href="{% url 'quotations:quotation_list' %}" class="nav-link {% if request.resolver_match.app_name == 'quotations' %}active{% endif %}">
+      <i class="bi bi-file-earmark-text"></i> Quotations
+    </a>
+    <div class="sidebar-section mt-2">Billing</div>
+    <a href="{% url 'subscriptions:subscription_list' %}" class="nav-link {% if request.resolver_match.app_name == 'subscriptions' %}active{% endif %}">
+      <i class="bi bi-arrow-repeat"></i> Subscriptions
+    </a>
+    <a href="{% url 'billing:invoice_list' %}" class="nav-link {% if 'invoices' in request.path %}active{% endif %}">
+      <i class="bi bi-receipt"></i> Invoices
+    </a>
+    <a href="{% url 'billing:payment_list' %}" class="nav-link {% if 'payments' in request.path %}active{% endif %}">
+      <i class="bi bi-credit-card"></i> Payments
+    </a>
+    <a href="{% url 'billing:run_billing' %}" class="nav-link {% if 'run-billing' in request.path %}active{% endif %}">
+      <i class="bi bi-lightning-charge"></i> Run Billing
+    </a>
+    <div class="sidebar-section mt-2">Admin</div>
+    <a href="/admin/" class="nav-link">
+      <i class="bi bi-shield-lock"></i> Django Admin
+    </a>
+    {% else %}
+    <div class="sidebar-section mt-2">My Account</div>
+    <a href="{% url 'quotations:quotation_list' %}" class="nav-link {% if request.resolver_match.app_name == 'quotations' %}active{% endif %}">
+      <i class="bi bi-file-earmark-text"></i> My Quotations
+    </a>
+    <a href="{% url 'subscriptions:subscription_list' %}" class="nav-link {% if request.resolver_match.app_name == 'subscriptions' %}active{% endif %}">
+      <i class="bi bi-arrow-repeat"></i> My Subscriptions
+    </a>
+    <a href="{% url 'billing:invoice_list' %}" class="nav-link {% if 'invoices' in request.path %}active{% endif %}">
+      <i class="bi bi-receipt"></i> My Invoices
+    </a>
+    {% endif %}
+  </div>
+</nav>
+
+<!-- Main -->
+<div class="main-wrapper">
+  <div class="topbar">
+    <span class="page-title">{% block page_title %}BrightLoop{% endblock %}</span>
+    <div class="d-flex align-items-center gap-3">
+      <span class="text-muted small">{{ user.get_full_name|default:user.username }}</span>
+      {% if user.is_superuser %}
+        <span class="badge bg-danger">Admin</span>
+      {% elif user.is_staff %}
+        <span class="badge bg-info">Staff</span>
+      {% else %}
+        <span class="badge bg-secondary">Customer</span>
+      {% endif %}
+      <a href="{% url 'accounts:logout' %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-box-arrow-right"></i> Logout
+      </a>
+    </div>
+  </div>
+
+  <div class="content-area">
+    <!-- Flash messages -->
+    {% if messages %}
+    <div class="messages-container">
+      {% for message in messages %}
+      <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show shadow-sm" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+  </div>
+</div>
+
+{% else %}
+  {% block auth_content %}{% endblock %}
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+{% block extra_js %}{% endblock %}
+<script>
+  // Auto-dismiss alerts after 4s
+  setTimeout(() => {
+    document.querySelectorAll('.alert.fade.show').forEach(el => {
+      const bsAlert = bootstrap.Alert.getOrCreateInstance(el);
+      bsAlert.close();
+    });
+  }, 4000);
+</script>
+</body>
+</html>
+

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}{{ customer }}{% endblock %}
+{% block page_title %}Customer Detail{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h5 class="fw-semibold mb-0">{{ customer.user.get_full_name|default:customer.user.username }}</h5>
+  <div class="d-flex gap-2">
+    {% if user.is_staff or user.is_superuser %}
+    <a href="{% url 'accounts:customer_edit' customer.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
+    <a href="{% url 'quotations:quotation_create' %}" class="btn btn-sm btn-primary">New Quotation</a>
+    {% endif %}
+  </div>
+</div>
+<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="form-card">
+      <h6 class="fw-semibold mb-3">Profile</h6>
+      <dl class="row mb-0">
+        <dt class="col-5 text-muted small">Username</dt><dd class="col-7">{{ customer.user.username }}</dd>
+        <dt class="col-5 text-muted small">Email</dt><dd class="col-7">{{ customer.user.email|default:"—" }}</dd>
+        <dt class="col-5 text-muted small">Company</dt><dd class="col-7">{{ customer.company_name|default:"—" }}</dd>
+        <dt class="col-5 text-muted small">Phone</dt><dd class="col-7">{{ customer.phone|default:"—" }}</dd>
+        <dt class="col-5 text-muted small">GST</dt><dd class="col-7">{{ customer.gst_number|default:"—" }}</dd>
+        <dt class="col-5 text-muted small">Since</dt><dd class="col-7">{{ customer.created_at|date:"M d, Y" }}</dd>
+      </dl>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="table-card mb-4">
+      <div class="p-3 border-bottom"><h6 class="fw-semibold mb-0">Subscriptions</h6></div>
+      <table class="table table-hover mb-0">
+        <thead><tr><th>#</th><th>Plan</th><th>Status</th><th>Next Billing</th></tr></thead>
+        <tbody>
+          {% for sub in customer.subscriptions.all %}
+          <tr>
+            <td><a href="{% url 'subscriptions:subscription_detail' sub.pk %}" class="text-decoration-none">SUB-{{ sub.pk|stringformat:"04d" }}</a></td>
+            <td>{{ sub.plan.name }}</td>
+            <td><span class="status-badge badge-{{ sub.status|lower }}">{{ sub.get_status_display }}</span></td>
+            <td>{{ sub.next_billing_date }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="text-center text-muted py-3">No subscriptions.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<a href="{% url 'accounts:customer_list' %}" class="btn btn-sm btn-outline-secondary mt-2"><i class="bi bi-arrow-left me-1"></i>Back</a>
+{% endblock %}

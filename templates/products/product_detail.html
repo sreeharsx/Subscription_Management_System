@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}{{ product.name }}{% endblock %}
+{% block page_title %}Product Detail{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h5 class="fw-semibold mb-0">{{ product.name }}</h5>
+  {% if user.is_staff or user.is_superuser %}
+  <div class="d-flex gap-2">
+    <a href="{% url 'products:product_edit' product.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
+    <a href="{% url 'products:plan_create' %}" class="btn btn-sm btn-primary">Add Plan</a>
+  </div>
+  {% endif %}
+</div>
+<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="form-card">
+      <dl class="row mb-0">
+        <dt class="col-5 text-muted small">Status</dt>
+        <dd class="col-7">{% if product.is_active %}<span class="status-badge badge-active">Active</span>{% else %}<span class="status-badge badge-cancelled">Inactive</span>{% endif %}</dd>
+        <dt class="col-5 text-muted small">Plans</dt><dd class="col-7">{{ plans.count }}</dd>
+        <dt class="col-5 text-muted small">Created</dt><dd class="col-7">{{ product.created_at|date:"M d, Y" }}</dd>
+      </dl>
+      {% if product.description %}<p class="text-muted small mt-3 mb-0">{{ product.description }}</p>{% endif %}
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="table-card">
+      <div class="p-3 border-bottom"><h6 class="fw-semibold mb-0">Subscription Plans</h6></div>
+      <table class="table table-hover mb-0">
+        <thead><tr><th>Name</th><th>Cycle</th><th>Price</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          {% for plan in plans %}
+          <tr>
+            <td><a href="{% url 'products:plan_detail' plan.pk %}" class="text-decoration-none fw-semibold">{{ plan.name }}</a></td>
+            <td>{{ plan.get_billing_cycle_display }}</td>
+            <td>₹{{ plan.base_price|floatformat:2 }}</td>
+            <td>{% if plan.is_active %}<span class="status-badge badge-active">Active</span>{% else %}<span class="status-badge badge-cancelled">Inactive</span>{% endif %}</td>
+            <td><a href="{% url 'products:plan_edit' plan.pk %}" class="btn btn-sm btn-outline-primary">Edit</a></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="text-center text-muted py-3">No plans. <a href="{% url 'products:plan_create' %}">Create one</a>.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<a href="{% url 'products:product_list' %}" class="btn btn-sm btn-outline-secondary mt-3"><i class="bi bi-arrow-left me-1"></i>Back</a>
+{% endblock %}
