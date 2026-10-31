@@ -18,3 +18,15 @@ class RunBillingForm(forms.Form):
         help_text="Generate invoices for all active subscriptions due on or before this date."
     )
 
+
+class CustomerPaymentForm(forms.Form):
+    payment_method = forms.ChoiceField(
+        choices=[
+            ('ONLINE', 'Online Card / NetBanking (Demo Simulation)'),
+            ('UPI', 'UPI / Instant Pay (Demo Simulation)'),
+        ],
+        label="Payment Method",
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+
+

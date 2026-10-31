@@ -7,9 +7,25 @@
     <h5 class="fw-semibold mb-1">{{ invoice.invoice_number }}</h5>
     <span class="status-badge badge-{{ invoice.status|lower }}">{{ invoice.get_status_display }}</span>
   </div>
-  {% if can_pay and invoice.status != 'PAID' and invoice.status != 'VOID' %}
-  <a href="{% url 'billing:record_payment' invoice.pk %}" class="btn btn-primary"><i class="bi bi-credit-card me-1"></i>Record Payment</a>
-  {% endif %}
+  <div>
+    {% if can_pay and invoice.status != 'PAID' and invoice.status != 'VOID' %}
+    <a href="{% url 'billing:record_payment' invoice.pk %}" class="btn btn-primary"><i class="bi bi-credit-card me-1"></i>Record Payment</a>
+    {% endif %}
+
+    {% if not can_pay %}
+      {% if invoice.status == 'PAID' %}
+        {% if payments %}
+        <a href="#payment-history" class="btn btn-outline-success"><i class="bi bi-check-circle me-1"></i>View Payment History</a>
+        {% endif %}
+      {% elif invoice.status != 'VOID' and invoice.outstanding_balance > 0 %}
+        {% if invoice.status == 'PARTIALLY_PAID' or invoice.amount_paid > 0 %}
+        <a href="{% url 'billing:customer_pay_invoice' invoice.pk %}" class="btn btn-primary"><i class="bi bi-credit-card me-1"></i>Pay Remaining Balance (₹{{ invoice.outstanding_balance|floatformat:2 }})</a>
+        {% else %}
+        <a href="{% url 'billing:customer_pay_invoice' invoice.pk %}" class="btn btn-primary"><i class="bi bi-credit-card me-1"></i>Pay Invoice (₹{{ invoice.outstanding_balance|floatformat:2 }})</a>
+        {% endif %}
+      {% endif %}
+    {% endif %}
+  </div>
 </div>
 
 <div class="row g-4">
@@ -44,7 +60,7 @@
     </div>
 
     {% if payments %}
-    <div class="table-card">
+    <div class="table-card" id="payment-history">
       <div class="p-3 border-bottom"><h6 class="fw-semibold mb-0">Payment History</h6></div>
       <table class="table table-hover mb-0">
         <thead><tr><th>Date</th><th>Method</th><th>Reference</th><th>Amount</th></tr></thead>
