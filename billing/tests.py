@@ -1,7 +1,11 @@
 from decimal import Decimal
-from datetime import date
-from django.test import TestCase, Client
+from datetime import date, timedelta
+from io import StringIO
+
+from django.core.management import call_command
 from django.contrib.auth.models import User
+from django.test import TestCase, Client
+from django.utils import timezone
 from accounts.models import CustomerProfile
 from products.models import Product, SubscriptionPlan, TaxConfiguration, DiscountConfiguration
 from quotations.models import Quotation
@@ -427,3 +431,157 @@ class CompleteWorkflowTestCase(TestCase):
         self.assertContains(res, '500.00')
 
 
+class UpdateOverdueInvoicesTestCase(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='overdue-test-user',
+            password='testpass123',
+        )
+        self.customer = CustomerProfile.objects.create(
+            user=self.user,
+            company_name='Overdue Test Company',
+        )
+        self.product = Product.objects.create(
+            name='Overdue Test Product',
+            description='Product for overdue invoice tests',
+        )
+        self.plan = SubscriptionPlan.objects.create(
+            product=self.product,
+            name='Overdue Test Plan',
+            billing_cycle='MONTHLY',
+            base_price=Decimal('100.00'),
+        )
+        quotation = Quotation.objects.create(
+            customer=self.customer,
+            plan=self.plan,
+            status='ACCEPTED',
+        )
+        quotation.calculate_totals()
+        quotation.save()
+        self.subscription = create_subscription_from_quotation(quotation)
+        self.invoice_sequence = 0
+
+    def create_invoice(self, status='ISSUED', amount_paid=Decimal('0.00'), due_date=None):
+        self.invoice_sequence += 1
+        if due_date is None:
+            due_date = timezone.localdate() - timedelta(days=1)
+
+        return Invoice.objects.create(
+            subscription=self.subscription,
+            invoice_number=f'TEST-OVERDUE-{self.invoice_sequence}',
+            billing_period_key=f'test-overdue-{self.invoice_sequence}',
+            status=status,
+            base_amount=Decimal('100.00'),
+            discount_amount=Decimal('0.00'),
+            tax_amount=Decimal('0.00'),
+            total_amount=Decimal('100.00'),
+            amount_paid=amount_paid,
+            issue_date=due_date - timedelta(days=15),
+            due_date=due_date,
+        )
+
+    def run_command(self, *args):
+        output = StringIO()
+        call_command('update_overdue_invoices', *args, stdout=output)
+        return output.getvalue()
+
+    def test_past_due_issued_invoice_becomes_overdue(self):
+        invoice = self.create_invoice()
+
+        self.run_command()
+
+        invoice.refresh_from_db()
+        self.assertEqual(invoice.status, 'OVERDUE')
+
+    def test_past_due_partially_paid_invoice_becomes_overdue(self):
+        invoice = self.create_invoice(
+            status='PARTIALLY_PAID',
+            amount_paid=Decimal('40.00'),
+        )
+
+        self.run_command()
+
+        invoice.refresh_from_db()
+        self.assertEqual(invoice.status, 'OVERDUE')
+        self.assertEqual(invoice.amount_paid, Decimal('40.00'))
+
+    def test_fully_paid_invoice_does_not_become_overdue(self):
+        invoice = self.create_invoice(
+            status='PAID',
+            amount_paid=Decimal('100.00'),
+        )
+
+        self.run_command()
+
+        invoice.refresh_from_db()
+        self.assertEqual(invoice.status, 'PAID')
+
+    def test_void_invoice_remains_void(self):
+        invoice = self.create_invoice(
+            status='VOID',
+            amount_paid=Decimal('100.00'),
+        )
+
+        self.run_command()
+
+        invoice.refresh_from_db()
+        self.assertEqual(invoice.status, 'VOID')
+
+    def test_invoice_due_today_does_not_become_overdue(self):
+        invoice = self.create_invoice(due_date=timezone.localdate())
+
+        self.run_command()
+
+        invoice.refresh_from_db()
+        self.assertEqual(invoice.status, 'ISSUED')
+
+    def test_future_due_invoice_does_not_become_overdue(self):
+        invoice = self.create_invoice(
+            due_date=timezone.localdate() + timedelta(days=1),
+        )
+
+        self.run_command()
+
+        invoice.refresh_from_db()
+        self.assertEqual(invoice.status, 'ISSUED')
+
+    def test_already_overdue_invoice_remains_unchanged(self):
+        invoice = self.create_invoice(status='OVERDUE')
+        invoice_number = invoice.invoice_number
+
+        output = self.run_command()
+
+        invoice.refresh_from_db()
+        self.assertEqual(invoice.status, 'OVERDUE')
+        self.assertEqual(invoice.invoice_number, invoice_number)
+        self.assertIn('already overdue: 1', output)
+
+    def test_dry_run_does_not_save_changes(self):
+        invoice = self.create_invoice()
+
+        output = self.run_command('--dry-run')
+
+        invoice.refresh_from_db()
+        self.assertEqual(invoice.status, 'ISSUED')
+        self.assertIn(invoice.invoice_number, output)
+        self.assertIn('would be updated: 1', output)
+
+    def test_repeated_runs_produce_consistent_results(self):
+        invoice = self.create_invoice()
+        initial_count = Invoice.objects.count()
+
+        first_output = self.run_command()
+        invoice.refresh_from_db()
+        first_status = invoice.status
+        first_count = Invoice.objects.count()
+
+        second_output = self.run_command()
+        invoice.refresh_from_db()
+
+        self.assertEqual(first_status, 'OVERDUE')
+        self.assertEqual(invoice.status, 'OVERDUE')
+        self.assertEqual(initial_count, first_count)
+        self.assertEqual(first_count, Invoice.objects.count())
+        self.assertIn('updated: 1', first_output)
+        self.assertIn('updated: 0', second_output)
+        self.assertIn('already overdue: 1', second_output)

@@ -36,19 +36,14 @@ def dashboard_index(request):
         total_outstanding = total_invoiced - total_inv_paid
 
         # Overdue
-        overdue_invoices = Invoice.objects.filter(
-            status__in=['ISSUED', 'PARTIALLY_PAID'],
-            due_date__lt=today
-        ).select_related('subscription__customer__user')[:10]
-        overdue_count = Invoice.objects.filter(
-            status__in=['ISSUED', 'PARTIALLY_PAID'],
-            due_date__lt=today
-        ).count()
+        overdue_qs = Invoice.objects.filter(
+            Q(status='OVERDUE') |
+            Q(status__in=['ISSUED', 'PARTIALLY_PAID'], due_date__lt=today)
+        )
+        overdue_invoices = overdue_qs.select_related('subscription__customer__user')[:10]
+        overdue_count = overdue_qs.count()
 
-        overdue_agg = Invoice.objects.filter(
-            status__in=['ISSUED', 'PARTIALLY_PAID'],
-            due_date__lt=today
-        ).aggregate(
+        overdue_agg = overdue_qs.aggregate(
             total=Sum('total_amount'),
             paid=Sum('amount_paid')
         )
