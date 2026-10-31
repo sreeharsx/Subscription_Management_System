@@ -1,51 +1,154 @@
 {% extends "base.html" %}
-{% block title %}{{ customer }}{% endblock %}
-{% block page_title %}Customer Detail{% endblock %}
+{% block title %}{{ customer.company_name|default:customer.user.username }}{% endblock %}
+{% block page_title %}Customer Profile{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-  <h5 class="fw-semibold mb-0">{{ customer.user.get_full_name|default:customer.user.username }}</h5>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+  <div>
+    <h5 class="fw-semibold mb-1">{{ customer.user.get_full_name|default:customer.user.username }}</h5>
+    <div class="text-muted small">
+      {% if customer.company_name %}<span class="me-2"><i class="bi bi-building me-1"></i>{{ customer.company_name }}</span>{% endif %}
+      <span><i class="bi bi-clock me-1"></i>Customer since {{ customer.created_at|date:"M d, Y" }}</span>
+    </div>
+  </div>
   <div class="d-flex gap-2">
     {% if user.is_staff or user.is_superuser %}
-    <a href="{% url 'accounts:customer_edit' customer.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
-    <a href="{% url 'quotations:quotation_create' %}" class="btn btn-sm btn-primary">New Quotation</a>
+    <a href="{% url 'accounts:customer_edit' customer.pk %}" class="btn btn-sm btn-outline-primary">
+      <i class="bi bi-pencil me-1"></i>Edit Profile
+    </a>
+    <a href="{% url 'quotations:quotation_create' %}?customer={{ customer.pk }}" class="btn btn-sm btn-primary">
+      <i class="bi bi-plus-lg me-1"></i>New Quotation
+    </a>
     {% endif %}
   </div>
 </div>
+
 <div class="row g-4">
+  <!-- Profile Sidebar -->
   <div class="col-lg-4">
-    <div class="form-card">
-      <h6 class="fw-semibold mb-3">Profile</h6>
-      <dl class="row mb-0">
-        <dt class="col-5 text-muted small">Username</dt><dd class="col-7">{{ customer.user.username }}</dd>
-        <dt class="col-5 text-muted small">Email</dt><dd class="col-7">{{ customer.user.email|default:"—" }}</dd>
-        <dt class="col-5 text-muted small">Company</dt><dd class="col-7">{{ customer.company_name|default:"—" }}</dd>
-        <dt class="col-5 text-muted small">Phone</dt><dd class="col-7">{{ customer.phone|default:"—" }}</dd>
-        <dt class="col-5 text-muted small">GST</dt><dd class="col-7">{{ customer.gst_number|default:"—" }}</dd>
-        <dt class="col-5 text-muted small">Since</dt><dd class="col-7">{{ customer.created_at|date:"M d, Y" }}</dd>
+    <div class="form-card mb-4">
+      <h6 class="fw-semibold mb-3 border-bottom pb-2">Contact & Business Details</h6>
+      <dl class="row mb-0 gy-2">
+        <dt class="col-5 text-muted small">Username</dt>
+        <dd class="col-7 mb-1">{{ customer.user.username }}</dd>
+
+        <dt class="col-5 text-muted small">Full Name</dt>
+        <dd class="col-7 mb-1">{{ customer.user.get_full_name|default:"—" }}</dd>
+
+        <dt class="col-5 text-muted small">Email</dt>
+        <dd class="col-7 mb-1"><a href="mailto:{{ customer.user.email }}" class="text-decoration-none">{{ customer.user.email|default:"—" }}</a></dd>
+
+        <dt class="col-5 text-muted small">Company</dt>
+        <dd class="col-7 mb-1">{{ customer.company_name|default:"—" }}</dd>
+
+        <dt class="col-5 text-muted small">Phone</dt>
+        <dd class="col-7 mb-1">{{ customer.phone|default:"—" }}</dd>
+
+        <dt class="col-5 text-muted small">GSTIN</dt>
+        <dd class="col-7 mb-1"><code>{{ customer.gst_number|default:"—" }}</code></dd>
+
+        <dt class="col-5 text-muted small">Address</dt>
+        <dd class="col-7 mb-0">{{ customer.address|linebreaksbr|default:"—" }}</dd>
       </dl>
     </div>
   </div>
+
+  <!-- Subscriptions & Quotations Column -->
   <div class="col-lg-8">
+    <!-- Subscriptions Section -->
     <div class="table-card mb-4">
-      <div class="p-3 border-bottom"><h6 class="fw-semibold mb-0">Subscriptions</h6></div>
-      <table class="table table-hover mb-0">
-        <thead><tr><th>#</th><th>Plan</th><th>Status</th><th>Next Billing</th></tr></thead>
-        <tbody>
-          {% for sub in customer.subscriptions.all %}
+      <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+        <h6 class="fw-semibold mb-0"><i class="bi bi-arrow-repeat me-1 text-primary"></i> Subscriptions</h6>
+        <span class="badge bg-light text-dark border">{{ subscriptions|length }} Total</span>
+      </div>
+      <table class="table table-hover align-middle mb-0">
+        <thead>
           <tr>
-            <td><a href="{% url 'subscriptions:subscription_detail' sub.pk %}" class="text-decoration-none">SUB-{{ sub.pk|stringformat:"04d" }}</a></td>
+            <th>ID</th>
+            <th>Plan</th>
+            <th>Cycle</th>
+            <th>Status</th>
+            <th>Next Billing</th>
+            <th class="text-end">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sub in subscriptions %}
+          <tr>
+            <td>
+              <a href="{% url 'subscriptions:subscription_detail' sub.pk %}" class="fw-semibold text-decoration-none">
+                SUB-{{ sub.pk|stringformat:"04d" }}
+              </a>
+            </td>
             <td>{{ sub.plan.name }}</td>
+            <td><span class="badge bg-light text-secondary border">{{ sub.billing_cycle }}</span></td>
             <td><span class="status-badge badge-{{ sub.status|lower }}">{{ sub.get_status_display }}</span></td>
             <td>{{ sub.next_billing_date }}</td>
+            <td class="text-end">
+              <a href="{% url 'subscriptions:subscription_detail' sub.pk %}" class="btn btn-sm btn-outline-secondary">View</a>
+            </td>
           </tr>
           {% empty %}
-          <tr><td colspan="4" class="text-center text-muted py-3">No subscriptions.</td></tr>
+          <tr>
+            <td colspan="6" class="text-center text-muted py-4">No subscriptions found for this customer.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Quotations Section -->
+    <div class="table-card mb-4">
+      <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+        <h6 class="fw-semibold mb-0"><i class="bi bi-file-earmark-text me-1 text-primary"></i> Quotations</h6>
+        <span class="badge bg-light text-dark border">{{ quotations|length }} Total</span>
+      </div>
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Quote #</th>
+            <th>Plan</th>
+            <th>Status</th>
+            <th>Total Amount</th>
+            <th>Valid Until</th>
+            <th class="text-end">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for quote in quotations %}
+          <tr>
+            <td>
+              <a href="{% url 'quotations:quotation_detail' quote.pk %}" class="fw-semibold text-decoration-none">
+                QT-{{ quote.pk|stringformat:"04d" }}
+              </a>
+            </td>
+            <td>{{ quote.plan.name }}</td>
+            <td><span class="status-badge badge-{{ quote.status|lower }}">{{ quote.get_status_display }}</span></td>
+            <td>₹{{ quote.total_amount|floatformat:2 }}</td>
+            <td>{{ quote.valid_until|default:"—" }}</td>
+            <td class="text-end">
+              <a href="{% url 'quotations:quotation_detail' quote.pk %}" class="btn btn-sm btn-outline-secondary">View</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="text-center text-muted py-4">No quotations generated yet for this customer.</td>
+          </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
 </div>
-<a href="{% url 'accounts:customer_list' %}" class="btn btn-sm btn-outline-secondary mt-2"><i class="bi bi-arrow-left me-1"></i>Back</a>
-{% endblock %}
 
+<div class="mt-2">
+  {% if user.is_staff or user.is_superuser %}
+  <a href="{% url 'accounts:customer_list' %}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Back to Customers
+  </a>
+  {% else %}
+  <a href="{% url 'dashboard:index' %}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+  </a>
+  {% endif %}
+</div>
+{% endblock %}

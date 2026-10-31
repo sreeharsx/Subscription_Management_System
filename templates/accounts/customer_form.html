@@ -3,37 +3,148 @@
 {% block page_title %}{{ title }}{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
-  <div class="col-lg-7">
+  <div class="col-lg-8">
     <div class="form-card">
-      <h5 class="fw-semibold mb-4">{{ title }}</h5>
+      <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <div>
+          <h5 class="fw-semibold mb-1">{{ title }}</h5>
+          <span class="text-muted small">
+            {% if edit %}Update customer contact information and linked user profile.{% else %}Register a new customer account with login credentials.{% endif %}
+          </span>
+        </div>
+        <a href="{% if edit %}{% url 'accounts:customer_detail' customer.pk %}{% else %}{% url 'accounts:customer_list' %}{% endif %}" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-x-lg"></i>
+        </a>
+      </div>
+
       <form method="post" novalidate>
         {% csrf_token %}
-        {% if not edit %}
-        <h6 class="text-muted fw-semibold mb-3 small text-uppercase">Login Details</h6>
-        {% for field in user_form %}
-        <div class="mb-3">
-          <label class="form-label fw-semibold small">{{ field.label }}</label>
-          {{ field }}
-          {% if field.errors %}<div class="text-danger small mt-1">{{ field.errors.0 }}</div>{% endif %}
+
+        {% if user_form.non_field_errors %}
+        <div class="alert alert-danger py-2 px-3 small mb-3">
+          {% for error in user_form.non_field_errors %}{{ error }}{% endfor %}
         </div>
-        {% endfor %}
-        <hr>
         {% endif %}
-        <h6 class="text-muted fw-semibold mb-3 small text-uppercase">Profile Details</h6>
-        {% for field in profile_form %}
-        <div class="mb-3">
-          <label class="form-label fw-semibold small">{{ field.label }}</label>
-          {{ field }}
-          {% if field.errors %}<div class="text-danger small mt-1">{{ field.errors.0 }}</div>{% endif %}
+
+        {% if profile_form.non_field_errors %}
+        <div class="alert alert-danger py-2 px-3 small mb-3">
+          {% for error in profile_form.non_field_errors %}{{ error }}{% endfor %}
         </div>
-        {% endfor %}
-        <div class="d-flex gap-2 mt-4">
-          <button type="submit" class="btn btn-primary">Save Customer</button>
-          <a href="{% url 'accounts:customer_list' %}" class="btn btn-outline-secondary">Cancel</a>
+        {% endif %}
+
+        <!-- Account Credentials Section -->
+        <h6 class="text-uppercase text-secondary fw-bold small mb-3">
+          <i class="bi bi-person-badge me-1"></i> User Account Details
+        </h6>
+
+        <div class="row g-3 mb-4">
+          {% if not edit %}
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Username <span class="text-danger">*</span></label>
+            {{ user_form.username }}
+            {% if user_form.username.errors %}
+              <div class="text-danger small mt-1">{{ user_form.username.errors.0 }}</div>
+            {% endif %}
+          </div>
+          {% endif %}
+
+          <div class="{% if not edit %}col-md-6{% else %}col-md-12{% endif %}">
+            <label class="form-label small fw-semibold">Email Address <span class="text-danger">*</span></label>
+            {{ user_form.email }}
+            {% if user_form.email.errors %}
+              <div class="text-danger small mt-1">{{ user_form.email.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">First Name</label>
+            {{ user_form.first_name }}
+            {% if user_form.first_name.errors %}
+              <div class="text-danger small mt-1">{{ user_form.first_name.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Last Name</label>
+            {{ user_form.last_name }}
+            {% if user_form.last_name.errors %}
+              <div class="text-danger small mt-1">{{ user_form.last_name.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          {% if not edit %}
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Password <span class="text-danger">*</span></label>
+            {{ user_form.password }}
+            {% if user_form.password.help_text %}
+              <div class="text-muted small mt-1">{{ user_form.password.help_text }}</div>
+            {% endif %}
+            {% if user_form.password.errors %}
+              <div class="text-danger small mt-1">{{ user_form.password.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Confirm Password <span class="text-danger">*</span></label>
+            {{ user_form.confirm_password }}
+            {% if user_form.confirm_password.errors %}
+              <div class="text-danger small mt-1">{{ user_form.confirm_password.errors.0 }}</div>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+
+        <hr class="my-4">
+
+        <!-- Company & Profile Section -->
+        <h6 class="text-uppercase text-secondary fw-bold small mb-3">
+          <i class="bi bi-briefcase me-1"></i> Company & Contact Profile
+        </h6>
+
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Company Name</label>
+            {{ profile_form.company_name }}
+            {% if profile_form.company_name.errors %}
+              <div class="text-danger small mt-1">{{ profile_form.company_name.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Phone Number</label>
+            {{ profile_form.phone }}
+            {% if profile_form.phone.errors %}
+              <div class="text-danger small mt-1">{{ profile_form.phone.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">GSTIN (Optional)</label>
+            {{ profile_form.gst_number }}
+            {% if profile_form.gst_number.errors %}
+              <div class="text-danger small mt-1">{{ profile_form.gst_number.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="col-md-12">
+            <label class="form-label small fw-semibold">Billing Address</label>
+            {{ profile_form.address }}
+            {% if profile_form.address.errors %}
+              <div class="text-danger small mt-1">{{ profile_form.address.errors.0 }}</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+          <a href="{% if edit %}{% url 'accounts:customer_detail' customer.pk %}{% else %}{% url 'accounts:customer_list' %}{% endif %}" class="btn btn-outline-secondary">
+            Cancel
+          </a>
+          <button type="submit" class="btn btn-primary px-4">
+            <i class="bi bi-check2-circle me-1"></i>Save Customer
+          </button>
         </div>
       </form>
     </div>
   </div>
 </div>
 {% endblock %}
-

@@ -1,36 +1,96 @@
 {% extends "base.html" %}
 {% block title %}Customers{% endblock %}
-{% block page_title %}Customers{% endblock %}
+{% block page_title %}Customer Management{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-  <h5 class="fw-semibold mb-0">All Customers</h5>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+  <div>
+    <h5 class="fw-semibold mb-1">Customers Directory</h5>
+    <span class="text-muted small">
+      Showing {{ filtered_count }} of {{ total_count }} total customer{{ total_count|pluralize }}
+      {% if query %}<span class="badge bg-light text-dark border ms-1">Filtered by: "{{ query }}"</span>{% endif %}
+    </span>
+  </div>
   <a href="{% url 'accounts:customer_create' %}" class="btn btn-primary btn-sm">
-    <i class="bi bi-plus-lg me-1"></i>Add Customer
+    <i class="bi bi-person-plus me-1"></i>Add Customer
   </a>
 </div>
+
+<!-- Search & Filter Card -->
+<div class="card border-0 shadow-sm rounded-3 mb-4">
+  <div class="card-body p-3">
+    <form method="get" class="row g-2 align-items-center">
+      <div class="col-md-9 col-lg-10">
+        <div class="input-group">
+          <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+          <input type="text" name="q" value="{{ query }}" class="form-control border-start-0" placeholder="Search by name, company, email, phone, or GST number...">
+        </div>
+      </div>
+      <div class="col-md-3 col-lg-2 d-flex gap-2">
+        <button type="submit" class="btn btn-primary w-100 btn-sm">Search</button>
+        {% if query %}
+        <a href="{% url 'accounts:customer_list' %}" class="btn btn-outline-secondary btn-sm" title="Clear filter">Clear</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+
 <div class="table-card">
-  <table class="table table-hover mb-0">
+  <table class="table table-hover align-middle mb-0">
     <thead>
-      <tr><th>Name</th><th>Username</th><th>Company</th><th>Phone</th><th>GST</th><th>Actions</th></tr>
+      <tr>
+        <th>Customer</th>
+        <th>Company</th>
+        <th>Email</th>
+        <th>Phone</th>
+        <th>GST Number</th>
+        <th>Subscriptions</th>
+        <th class="text-end">Actions</th>
+      </tr>
     </thead>
     <tbody>
       {% for customer in customers %}
       <tr>
-        <td><a href="{% url 'accounts:customer_detail' customer.pk %}" class="fw-semibold text-decoration-none">{{ customer.user.get_full_name|default:customer.user.username }}</a></td>
-        <td class="text-muted small">{{ customer.user.username }}</td>
-        <td>{{ customer.company_name|default:"—" }}</td>
-        <td>{{ customer.phone|default:"—" }}</td>
-        <td>{{ customer.gst_number|default:"—" }}</td>
         <td>
-          <a href="{% url 'accounts:customer_detail' customer.pk %}" class="btn btn-sm btn-outline-secondary">View</a>
-          <a href="{% url 'accounts:customer_edit' customer.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
+          <a href="{% url 'accounts:customer_detail' customer.pk %}" class="fw-semibold text-decoration-none">
+            {{ customer.user.get_full_name|default:customer.user.username }}
+          </a>
+          <div class="text-muted small">@{{ customer.user.username }}</div>
+        </td>
+        <td>{{ customer.company_name|default:"—" }}</td>
+        <td>{{ customer.user.email|default:"—" }}</td>
+        <td>{{ customer.phone|default:"—" }}</td>
+        <td><code>{{ customer.gst_number|default:"—" }}</code></td>
+        <td>
+          <span class="badge bg-secondary rounded-pill">
+            {{ customer.subscriptions.count }}
+          </span>
+        </td>
+        <td class="text-end">
+          <div class="btn-group btn-group-sm">
+            <a href="{% url 'accounts:customer_detail' customer.pk %}" class="btn btn-outline-secondary">
+              <i class="bi bi-eye"></i> View
+            </a>
+            <a href="{% url 'accounts:customer_edit' customer.pk %}" class="btn btn-outline-primary">
+              <i class="bi bi-pencil"></i> Edit
+            </a>
+          </div>
         </td>
       </tr>
       {% empty %}
-      <tr><td colspan="6" class="text-center text-muted py-4">No customers yet. <a href="{% url 'accounts:customer_create' %}">Add one</a>.</td></tr>
+      <tr>
+        <td colspan="7" class="text-center text-muted py-5">
+          <i class="bi bi-people fs-2 d-block mb-2 text-secondary"></i>
+          {% if query %}
+            No customers match your search "<strong>{{ query }}</strong>".
+            <div class="mt-2"><a href="{% url 'accounts:customer_list' %}" class="btn btn-sm btn-outline-secondary">Clear Search</a></div>
+          {% else %}
+            No customers registered yet. <a href="{% url 'accounts:customer_create' %}">Add the first customer</a>.
+          {% endif %}
+        </td>
+      </tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
 {% endblock %}
-
