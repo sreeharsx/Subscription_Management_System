@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 from decimal import Decimal
 from accounts.models import CustomerProfile
 from products.models import SubscriptionPlan
@@ -47,6 +48,20 @@ class Subscription(models.Model):
 
     def can_transition_to(self, new_status):
         return new_status in self.VALID_TRANSITIONS.get(self.status, [])
+
+    @property
+    def can_renew(self):
+        """Only EXPIRED subscriptions can be renewed."""
+        return self.status == 'EXPIRED'
+
+    def clean(self):
+        """Validate date relationships without breaking nullable fields or existing records."""
+        super().clean()
+        if self.start_date:
+            if self.end_date and self.end_date < self.start_date:
+                raise ValidationError({'end_date': "End date cannot be earlier than start date."})
+            if self.next_billing_date and self.next_billing_date < self.start_date:
+                raise ValidationError({'next_billing_date': "Next billing date cannot be earlier than start date."})
 
     def get_invoiceable_amount(self):
         """Return (base, discount, tax, total) using Decimal arithmetic."""

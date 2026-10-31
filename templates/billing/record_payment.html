@@ -2,43 +2,23 @@
 {% block title %}Record Payment | {{ invoice.invoice_number }}{% endblock %}
 {% block page_title %}Record Payment{% endblock %}
 
-{% block extra_head %}
-<style>
-  .payment-form-card input[type="text"],
-  .payment-form-card input[type="number"],
-  .payment-form-card input[type="date"],
-  .payment-form-card select,
-  .payment-form-card textarea {
-    display: block;
-    width: 100%;
-    padding: .375rem .75rem;
-    font-size: .875rem;
-    font-weight: 400;
-    line-height: 1.5;
-    color: #1e293b;
-    background-color: #fff;
-    background-clip: padding-box;
-    border: 1px solid #cbd5e1;
-    border-radius: .375rem;
-    transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
-  }
-  .payment-form-card input:focus,
-  .payment-form-card select:focus,
-  .payment-form-card textarea:focus {
-    border-color: #6366f1;
-    outline: 0;
-    box-shadow: 0 0 0 .2rem rgba(99, 102, 241, .25);
-  }
-</style>
-{% endblock %}
-
 {% block content %}
+
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'billing:invoice_list' %}">Invoices</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'billing:invoice_detail' invoice.pk %}">{{ invoice.invoice_number }}</a></li>
+    <li class="breadcrumb-item active">Record Payment</li>
+  </ol>
+</nav>
+
 <div class="row justify-content-center">
   <div class="col-lg-7">
     <!-- Invoice Summary Card -->
     <div class="form-card mb-4">
       <div class="d-flex justify-content-between align-items-center mb-3">
-        <h6 class="fw-semibold mb-0">Invoice Summary</h6>
+        <h6 class="fw-semibold mb-0"><i class="bi bi-receipt me-2 text-primary"></i>Invoice Summary</h6>
         <span class="status-badge badge-{{ invoice.status|lower }}">{{ invoice.get_status_display }}</span>
       </div>
       <dl class="row mb-0">
@@ -68,9 +48,9 @@
     </div>
 
     <!-- Payment Recording Form Card -->
-    <div class="form-card payment-form-card">
-      <h5 class="fw-semibold mb-2">Record Payment</h5>
-      <p class="text-muted small mb-4">Enter payment details to allocate funds to this invoice and update the outstanding balance.</p>
+    <div class="form-card">
+      <h5 class="fw-semibold mb-1"><i class="bi bi-credit-card me-2 text-primary"></i>Record Transaction</h5>
+      <p class="text-muted small mb-4">Post payment against this invoice. Outstanding balance and status update automatically.</p>
 
       {% if form.non_field_errors %}
       <div class="alert alert-danger py-2 mb-3">
@@ -100,7 +80,7 @@
 
         <div class="d-flex gap-2 mt-4 pt-2 border-top">
           <button type="submit" class="btn btn-primary">
-            <i class="bi bi-credit-card me-1"></i>Record Payment
+            <i class="bi bi-check-circle me-1"></i>Confirm & Save Payment
           </button>
           <a href="{% url 'billing:invoice_detail' invoice.pk %}" class="btn btn-outline-secondary">
             Cancel
@@ -111,4 +91,3 @@
   </div>
 </div>
 {% endblock %}
-

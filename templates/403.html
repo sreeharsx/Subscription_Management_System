@@ -5,12 +5,12 @@
 <div class="row justify-content-center pt-5">
   <div class="col-md-6 text-center">
     <div class="form-card py-5">
-      <div class="stat-icon mx-auto mb-3" style="width: 64px; height: 64px; font-size: 2rem; background: #fee2e2; color: #dc2626;">
+      <div class="stat-icon mx-auto mb-3" style="width: 64px; height: 64px; font-size: 2rem; background: #fee2e2; color: #dc2626; border-radius: 16px; display: flex; align-items: center; justify-content: center;">
         <i class="bi bi-shield-x"></i>
       </div>
-      <h3 class="fw-bold text-danger mb-2">403 — Forbidden</h3>
+      <h3 class="fw-bold text-dark mb-2">403 — Access Denied</h3>
       <p class="text-muted mb-4">
-        You do not have permission to access this resource. Customer records are strictly isolated.
+        You do not have permission to access this resource. Customer accounts and sensitive operational records are strictly isolated.
       </p>
       <div class="d-flex justify-content-center gap-2">
         <a href="{% url 'dashboard:index' %}" class="btn btn-primary">
@@ -21,4 +21,3 @@
   </div>
 </div>
 {% endblock %}
-

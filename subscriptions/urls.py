@@ -9,4 +9,5 @@ urlpatterns = [
     path('<int:pk>/pause/', views.subscription_pause, name='subscription_pause'),
     path('<int:pk>/resume/', views.subscription_resume, name='subscription_resume'),
     path('<int:pk>/cancel/', views.subscription_cancel, name='subscription_cancel'),
+    path('<int:pk>/renew/', views.subscription_renew, name='subscription_renew'),
 ]

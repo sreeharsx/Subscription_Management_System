@@ -21,7 +21,7 @@
     <div class="stat-card">
       <div class="d-flex align-items-center justify-content-between">
         <div>
-          <div class="stat-value">₹{{ total_revenue|floatformat:2 }}</div>
+          <div class="stat-value text-success">₹{{ total_revenue|floatformat:2 }}</div>
           <div class="stat-label">Total Revenue Collected</div>
         </div>
         <div class="stat-icon" style="background:#dcfce7;color:#16a34a"><i class="bi bi-currency-rupee"></i></div>
@@ -32,7 +32,7 @@
     <div class="stat-card">
       <div class="d-flex align-items-center justify-content-between">
         <div>
-          <div class="stat-value">₹{{ total_outstanding|floatformat:2 }}</div>
+          <div class="stat-value text-warning">₹{{ total_outstanding|floatformat:2 }}</div>
           <div class="stat-label">Outstanding Balance</div>
         </div>
         <div class="stat-icon" style="background:#fef9c3;color:#ca8a04"><i class="bi bi-hourglass-split"></i></div>
@@ -56,7 +56,10 @@
   <!-- Revenue Chart -->
   <div class="col-lg-7">
     <div class="table-card p-4">
-      <h6 class="fw-semibold mb-3">Revenue — Last 6 Months</h6>
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <h6 class="fw-semibold mb-0"><i class="bi bi-graph-up-arrow me-2 text-primary"></i>Revenue Trend (Last 6 Months)</h6>
+        <span class="badge bg-light text-muted border">Completed Payments</span>
+      </div>
       <canvas id="revenueChart" height="220"></canvas>
     </div>
   </div>
@@ -64,7 +67,10 @@
   <!-- Subscription Mix -->
   <div class="col-lg-5">
     <div class="table-card p-4">
-      <h6 class="fw-semibold mb-3">Subscription Status</h6>
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <h6 class="fw-semibold mb-0"><i class="bi bi-pie-chart me-2 text-primary"></i>Subscription Status</h6>
+        <span class="badge bg-light text-muted border">Live Contracts</span>
+      </div>
       <canvas id="subChart" height="220"></canvas>
     </div>
   </div>
@@ -72,25 +78,35 @@
   <!-- Overdue Invoices -->
   {% if overdue_invoices %}
   <div class="col-12">
-    <div class="table-card">
-      <div class="d-flex align-items-center justify-content-between p-3 border-bottom">
-        <h6 class="fw-semibold mb-0 text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Overdue Invoices</h6>
-        <a href="{% url 'billing:invoice_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+    <div class="table-card border-danger border-opacity-25">
+      <div class="card-header-row bg-danger-subtle bg-opacity-25">
+        <h6 class="fw-semibold mb-0 text-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i>Critical: Overdue Invoices Requiring Follow-Up</h6>
+        <a href="{% url 'billing:invoice_list' %}" class="btn btn-sm btn-outline-danger">View All Invoices</a>
       </div>
-      <table class="table table-hover mb-0">
-        <thead><tr><th>Invoice</th><th>Customer</th><th>Due Date</th><th>Outstanding</th><th></th></tr></thead>
-        <tbody>
-          {% for inv in overdue_invoices %}
-          <tr>
-            <td><a href="{% url 'billing:invoice_detail' inv.pk %}" class="fw-semibold text-decoration-none">{{ inv.invoice_number }}</a></td>
-            <td>{{ inv.subscription.customer }}</td>
-            <td class="text-danger">{{ inv.due_date }}</td>
-            <td class="fw-semibold">₹{{ inv.outstanding_balance|floatformat:2 }}</td>
-            <td><a href="{% url 'billing:record_payment' inv.pk %}" class="btn btn-sm btn-primary">Pay</a></td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th>Invoice</th>
+              <th>Customer</th>
+              <th>Due Date</th>
+              <th class="text-end">Outstanding</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for inv in overdue_invoices %}
+            <tr>
+              <td><a href="{% url 'billing:invoice_detail' inv.pk %}" class="fw-semibold text-decoration-none text-danger">{{ inv.invoice_number }}</a></td>
+              <td>{{ inv.subscription.customer }}</td>
+              <td class="text-danger fw-semibold">{{ inv.due_date }}</td>
+              <td class="fw-semibold text-end text-danger">₹{{ inv.outstanding_balance|floatformat:2 }}</td>
+              <td><a href="{% url 'billing:record_payment' inv.pk %}" class="btn btn-sm btn-danger">Record Payment</a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
   {% endif %}
@@ -99,21 +115,24 @@
   {% if upcoming_renewals %}
   <div class="col-lg-6">
     <div class="table-card">
-      <div class="d-flex align-items-center justify-content-between p-3 border-bottom">
-        <h6 class="fw-semibold mb-0"><i class="bi bi-calendar-event me-2"></i>Upcoming Renewals (30 days)</h6>
+      <div class="card-header-row">
+        <h6 class="fw-semibold mb-0"><i class="bi bi-calendar-event me-2 text-primary"></i>Upcoming Renewals (Next 30 Days)</h6>
+        <a href="{% url 'subscriptions:subscription_list' %}" class="btn btn-sm btn-outline-secondary">All Subs</a>
       </div>
-      <table class="table table-hover mb-0">
-        <thead><tr><th>Customer</th><th>Plan</th><th>Next Billing</th></tr></thead>
-        <tbody>
-          {% for sub in upcoming_renewals %}
-          <tr>
-            <td><a href="{% url 'subscriptions:subscription_detail' sub.pk %}" class="text-decoration-none">{{ sub.customer }}</a></td>
-            <td>{{ sub.plan.name }}</td>
-            <td>{{ sub.next_billing_date }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead><tr><th>Customer</th><th>Plan</th><th>Next Billing</th></tr></thead>
+          <tbody>
+            {% for sub in upcoming_renewals %}
+            <tr>
+              <td><a href="{% url 'subscriptions:subscription_detail' sub.pk %}" class="text-decoration-none fw-semibold">{{ sub.customer }}</a></td>
+              <td class="text-muted small">{{ sub.plan.name }}</td>
+              <td class="text-primary fw-semibold small">{{ sub.next_billing_date }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
   {% endif %}
@@ -122,22 +141,24 @@
   {% if recent_payments %}
   <div class="col-lg-6">
     <div class="table-card">
-      <div class="d-flex align-items-center justify-content-between p-3 border-bottom">
-        <h6 class="fw-semibold mb-0"><i class="bi bi-credit-card me-2"></i>Recent Payments</h6>
+      <div class="card-header-row">
+        <h6 class="fw-semibold mb-0"><i class="bi bi-credit-card me-2 text-success"></i>Recent Completed Payments</h6>
         <a href="{% url 'billing:payment_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
       </div>
-      <table class="table table-hover mb-0">
-        <thead><tr><th>Customer</th><th>Amount</th><th>Date</th></tr></thead>
-        <tbody>
-          {% for pmt in recent_payments %}
-          <tr>
-            <td>{{ pmt.invoice.subscription.customer }}</td>
-            <td class="fw-semibold text-success">₹{{ pmt.amount|floatformat:2 }}</td>
-            <td>{{ pmt.payment_date }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead><tr><th>Customer</th><th class="text-end">Amount</th><th>Date</th></tr></thead>
+          <tbody>
+            {% for pmt in recent_payments %}
+            <tr>
+              <td>{{ pmt.invoice.subscription.customer }}</td>
+              <td class="fw-semibold text-success text-end">₹{{ pmt.amount|floatformat:2 }}</td>
+              <td class="text-muted small">{{ pmt.payment_date }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
   {% endif %}
@@ -148,51 +169,103 @@
 <div class="row g-4 mb-4">
   <div class="col-sm-6 col-xl-3">
     <div class="stat-card">
-      <div class="stat-value">{{ active_subscriptions }}</div>
-      <div class="stat-label">Active Subscriptions</div>
+      <div class="d-flex align-items-center justify-content-between">
+        <div>
+          <div class="stat-value">{{ active_subscriptions|default:0 }}</div>
+          <div class="stat-label">Active Subscriptions</div>
+        </div>
+        <div class="stat-icon" style="background:#ede9fe;color:#7c3aed"><i class="bi bi-arrow-repeat"></i></div>
+      </div>
     </div>
   </div>
   <div class="col-sm-6 col-xl-3">
     <div class="stat-card">
-      <div class="stat-value">{{ total_invoices }}</div>
-      <div class="stat-label">Total Invoices</div>
+      <div class="d-flex align-items-center justify-content-between">
+        <div>
+          <div class="stat-value">{{ total_invoices|default:0 }}</div>
+          <div class="stat-label">Total Invoices</div>
+        </div>
+        <div class="stat-icon" style="background:#e0f2fe;color:#0284c7"><i class="bi bi-receipt"></i></div>
+      </div>
     </div>
   </div>
   <div class="col-sm-6 col-xl-3">
     <div class="stat-card">
-      <div class="stat-value text-success">₹{{ total_paid|floatformat:2 }}</div>
-      <div class="stat-label">Total Paid</div>
+      <div class="d-flex align-items-center justify-content-between">
+        <div>
+          <div class="stat-value text-success">₹{{ total_paid|default:0|floatformat:2 }}</div>
+          <div class="stat-label">Total Paid</div>
+        </div>
+        <div class="stat-icon" style="background:#dcfce7;color:#16a34a"><i class="bi bi-wallet2"></i></div>
+      </div>
     </div>
   </div>
   <div class="col-sm-6 col-xl-3">
     <div class="stat-card">
-      <div class="stat-value text-warning">₹{{ outstanding|floatformat:2 }}</div>
-      <div class="stat-label">Outstanding Balance</div>
+      <div class="d-flex align-items-center justify-content-between">
+        <div>
+          <div class="stat-value {% if outstanding > 0 %}text-warning{% else %}text-success{% endif %}">₹{{ outstanding|default:0|floatformat:2 }}</div>
+          <div class="stat-label">Outstanding Due</div>
+        </div>
+        <div class="stat-icon" style="background:#fef9c3;color:#ca8a04"><i class="bi bi-hourglass-split"></i></div>
+      </div>
     </div>
   </div>
 </div>
 
 <div class="row g-4">
-  {% if recent_invoices %}
-  <div class="col-lg-7">
+  <div class="col-12">
     <div class="table-card">
-      <div class="p-3 border-bottom"><h6 class="fw-semibold mb-0">Recent Invoices</h6></div>
-      <table class="table table-hover mb-0">
-        <thead><tr><th>Invoice</th><th>Status</th><th>Total</th><th>Outstanding</th></tr></thead>
-        <tbody>
-          {% for inv in recent_invoices %}
-          <tr>
-            <td><a href="{% url 'billing:invoice_detail' inv.pk %}" class="text-decoration-none fw-semibold">{{ inv.invoice_number }}</a></td>
-            <td><span class="status-badge badge-{{ inv.status|lower }}">{{ inv.get_status_display }}</span></td>
-            <td>₹{{ inv.total_amount|floatformat:2 }}</td>
-            <td>₹{{ inv.outstanding_balance|floatformat:2 }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      <div class="card-header-row">
+        <h6 class="fw-semibold mb-0"><i class="bi bi-receipt me-2 text-primary"></i>My Recent Invoices</h6>
+        <a href="{% url 'billing:invoice_list' %}" class="btn btn-sm btn-outline-primary">View All Invoices</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th>Invoice #</th>
+              <th>Status</th>
+              <th class="text-end">Total</th>
+              <th class="text-end">Outstanding</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for inv in recent_invoices %}
+            <tr>
+              <td>
+                <a href="{% url 'billing:invoice_detail' inv.pk %}" class="text-decoration-none fw-semibold">
+                  {{ inv.invoice_number }}
+                </a>
+              </td>
+              <td><span class="status-badge badge-{{ inv.status|lower }}">{{ inv.get_status_display }}</span></td>
+              <td class="text-end">₹{{ inv.total_amount|floatformat:2 }}</td>
+              <td class="text-end">
+                {% if inv.outstanding_balance > 0 %}
+                <span class="text-danger fw-semibold">₹{{ inv.outstanding_balance|floatformat:2 }}</span>
+                {% else %}
+                <span class="text-success">—</span>
+                {% endif %}
+              </td>
+              <td>
+                <a href="{% url 'billing:invoice_detail' inv.pk %}" class="btn btn-sm btn-outline-secondary">
+                  View Detail
+                </a>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5" class="text-center text-muted py-4">
+                No invoices issued yet.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
-  {% endif %}
 </div>
 {% endif %}
 
@@ -202,35 +275,71 @@
 {% if is_staff_view %}
 <script>
 const revData = {{ monthly_revenue|safe }};
-new Chart(document.getElementById('revenueChart'), {
-  type: 'bar',
-  data: {
-    labels: revData.map(d => d.label),
-    datasets: [{
-      label: 'Revenue (₹)',
-      data: revData.map(d => d.amount),
-      backgroundColor: '#6366f1cc',
-      borderRadius: 6,
-    }]
-  },
-  options: {
-    plugins: { legend: { display: false } },
-    scales: { y: { beginAtZero: true, ticks: { callback: v => '₹' + v.toLocaleString() } } }
-  }
-});
-new Chart(document.getElementById('subChart'), {
-  type: 'doughnut',
-  data: {
-    labels: ['Active', 'Paused', 'Cancelled'],
-    datasets: [{
-      data: [{{ active_subscriptions }}, {{ paused_subscriptions }}, {{ cancelled_subscriptions }}],
-      backgroundColor: ['#6366f1', '#f59e0b', '#ef4444'],
-      borderWidth: 0,
-    }]
-  },
-  options: { plugins: { legend: { position: 'bottom' } }, cutout: '65%' }
-});
+const revCanvas = document.getElementById('revenueChart');
+if (revCanvas) {
+  new Chart(revCanvas, {
+    type: 'bar',
+    data: {
+      labels: revData.map(d => d.label),
+      datasets: [{
+        label: 'Revenue (₹)',
+        data: revData.map(d => d.amount),
+        backgroundColor: '#4F46E5',
+        borderRadius: 8,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return ' ₹' + Number(context.raw).toLocaleString();
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { color: '#f1f5f9' },
+          ticks: { callback: v => '₹' + v.toLocaleString() }
+        },
+        x: {
+          grid: { display: false }
+        }
+      }
+    }
+  });
+}
+
+const subCanvas = document.getElementById('subChart');
+if (subCanvas) {
+  new Chart(subCanvas, {
+    type: 'doughnut',
+    data: {
+      labels: ['Active', 'Paused', 'Cancelled'],
+      datasets: [{
+        data: [{{ active_subscriptions }}, {{ paused_subscriptions }}, {{ cancelled_subscriptions }}],
+        backgroundColor: ['#4F46E5', '#D97706', '#DC2626'],
+        borderWidth: 0,
+        hoverOffset: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { padding: 16, usePointStyle: true }
+        }
+      },
+      cutout: '72%'
+    }
+  });
+}
 </script>
 {% endif %}
 {% endblock %}
-

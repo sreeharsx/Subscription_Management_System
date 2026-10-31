@@ -1,43 +1,147 @@
 {% extends "base.html" %}
 {% block title %}{{ invoice.invoice_number }}{% endblock %}
 {% block page_title %}Invoice Detail{% endblock %}
+
+{% block extra_head %}
+<style>
+  @media print {
+    .no-print { display: none !important; }
+    .print-only { display: block !important; }
+  }
+  .print-only { display: none; }
+  .invoice-total-box {
+    background: linear-gradient(135deg, #4F46E5, #7c3aed);
+    border-radius: 12px; padding: 1.25rem 1.5rem;
+    color: #fff;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-3 no-print">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'billing:invoice_list' %}">Invoices</a></li>
+    <li class="breadcrumb-item active">{{ invoice.invoice_number }}</li>
+  </ol>
+</nav>
+
+<!-- Page header -->
+<div class="page-header">
   <div>
-    <h5 class="fw-semibold mb-1">{{ invoice.invoice_number }}</h5>
-    <span class="status-badge badge-{{ invoice.status|lower }}">{{ invoice.get_status_display }}</span>
+    <div class="d-flex align-items-center gap-3 mb-1">
+      <h4 class="mb-0">{{ invoice.invoice_number }}</h4>
+      <span class="status-badge badge-{{ invoice.status|lower }}">{{ invoice.get_status_display }}</span>
+    </div>
+    <p class="text-muted mb-0">
+      Issued {{ invoice.issue_date }} &bull; Due
+      <span class="{% if invoice.status == 'OVERDUE' %}text-danger fw-semibold{% endif %}">{{ invoice.due_date }}</span>
+    </p>
   </div>
-  {% if can_pay and invoice.status != 'PAID' and invoice.status != 'VOID' %}
-  <a href="{% url 'billing:record_payment' invoice.pk %}" class="btn btn-primary"><i class="bi bi-credit-card me-1"></i>Record Payment</a>
-  {% endif %}
+  <div class="d-flex gap-2 flex-wrap no-print">
+    <button onclick="window.print()" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-printer me-1"></i> Print
+    </button>
+    {% if can_pay and invoice.status != 'PAID' and invoice.status != 'VOID' %}
+    <a href="{% url 'billing:record_payment' invoice.pk %}" class="btn btn-primary">
+      <i class="bi bi-credit-card me-1"></i> Record Payment
+    </a>
+    {% endif %}
+  </div>
 </div>
 
 <div class="row g-4">
+  <!-- Left: Invoice details -->
   <div class="col-lg-5">
     <div class="form-card mb-4">
-      <h6 class="fw-semibold mb-3">Invoice Details</h6>
+      <div class="form-section-title">Invoice Details</div>
       <dl class="row mb-0">
-        <dt class="col-5 text-muted small">Customer</dt><dd class="col-7">{{ invoice.subscription.customer }}</dd>
-        <dt class="col-5 text-muted small">Subscription</dt><dd class="col-7"><a href="{% url 'subscriptions:subscription_detail' invoice.subscription.pk %}" class="text-decoration-none">SUB-{{ invoice.subscription.pk|stringformat:"04d" }}</a></dd>
-        <dt class="col-5 text-muted small">Billing Period</dt><dd class="col-7">{{ invoice.billing_period_key }}</dd>
-        <dt class="col-5 text-muted small">Issue Date</dt><dd class="col-7">{{ invoice.issue_date }}</dd>
-        <dt class="col-5 text-muted small">Due Date</dt><dd class="col-7 {% if invoice.status == 'OVERDUE' %}text-danger fw-semibold{% endif %}">{{ invoice.due_date }}</dd>
-        {% if invoice.paid_date %}<dt class="col-5 text-muted small">Paid Date</dt><dd class="col-7">{{ invoice.paid_date }}</dd>{% endif %}
+        <dt class="col-5 text-muted small">Invoice #</dt>
+        <dd class="col-7 fw-semibold">{{ invoice.invoice_number }}</dd>
+
+        <dt class="col-5 text-muted small">Customer</dt>
+        <dd class="col-7">{{ invoice.subscription.customer }}</dd>
+
+        <dt class="col-5 text-muted small">Subscription</dt>
+        <dd class="col-7">
+          <a href="{% url 'subscriptions:subscription_detail' invoice.subscription.pk %}" class="text-decoration-none">
+            SUB-{{ invoice.subscription.pk|stringformat:"04d" }}
+          </a>
+        </dd>
+
+        <dt class="col-5 text-muted small">Plan</dt>
+        <dd class="col-7">{{ invoice.subscription.plan.name }}</dd>
+
+        <dt class="col-5 text-muted small">Billing Period</dt>
+        <dd class="col-7">{{ invoice.billing_period_key }}</dd>
+
+        <dt class="col-5 text-muted small">Issue Date</dt>
+        <dd class="col-7">{{ invoice.issue_date }}</dd>
+
+        <dt class="col-5 text-muted small">Due Date</dt>
+        <dd class="col-7 {% if invoice.status == 'OVERDUE' %}text-danger fw-semibold{% endif %}">{{ invoice.due_date }}</dd>
+
+        {% if invoice.paid_date %}
+        <dt class="col-5 text-muted small">Paid Date</dt>
+        <dd class="col-7 text-success">{{ invoice.paid_date }}</dd>
+        {% endif %}
       </dl>
     </div>
+
+    {% if invoice.outstanding_balance > 0 and not can_pay %}
+    <!-- Customer pay button -->
+    <div class="form-card border-0" style="background:linear-gradient(135deg,#4F46E5,#7c3aed);color:#fff;">
+      <div class="d-flex align-items-center gap-3 mb-3">
+        <div style="width:44px;height:44px;border-radius:10px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:1.3rem;">
+          <i class="bi bi-credit-card-2-front"></i>
+        </div>
+        <div>
+          <div class="fw-semibold">Outstanding Balance</div>
+          <div style="font-size:1.5rem;font-weight:700;">₹{{ invoice.outstanding_balance|floatformat:2 }}</div>
+        </div>
+      </div>
+      {% if invoice.status == 'ISSUED' or invoice.status == 'PARTIALLY_PAID' or invoice.status == 'OVERDUE' %}
+      <a href="{% url 'billing:invoice_detail' invoice.pk %}#pay" class="btn w-100" style="background:#fff;color:#4F46E5;font-weight:600;">
+        <i class="bi bi-lightning-charge me-1"></i> Pay Now
+      </a>
+      {% endif %}
+    </div>
+    {% endif %}
   </div>
+
+  <!-- Right: Amount breakdown + payments -->
   <div class="col-lg-7">
     <div class="form-card mb-4">
-      <h6 class="fw-semibold mb-3">Amount Breakdown</h6>
+      <div class="form-section-title">Amount Breakdown</div>
       <table class="table mb-0">
         <tbody>
-          <tr><td class="text-muted">Base Amount</td><td class="text-end">₹{{ invoice.base_amount|floatformat:2 }}</td></tr>
-          <tr><td class="text-muted">Discount</td><td class="text-end text-success">− ₹{{ invoice.discount_amount|floatformat:2 }}</td></tr>
-          <tr><td class="text-muted">Tax</td><td class="text-end">+ ₹{{ invoice.tax_amount|floatformat:2 }}</td></tr>
-          <tr class="fw-bold border-top"><td>Total</td><td class="text-end fs-5">₹{{ invoice.total_amount|floatformat:2 }}</td></tr>
-          <tr><td class="text-muted">Amount Paid</td><td class="text-end text-success">₹{{ invoice.amount_paid|floatformat:2 }}</td></tr>
-          <tr class="{% if invoice.outstanding_balance > 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
-            <td>Outstanding Balance</td><td class="text-end fs-5">₹{{ invoice.outstanding_balance|floatformat:2 }}</td>
+          <tr>
+            <td class="text-muted border-0">Base Amount</td>
+            <td class="text-end border-0">₹{{ invoice.base_amount|floatformat:2 }}</td>
+          </tr>
+          <tr>
+            <td class="text-muted border-0">Discount</td>
+            <td class="text-end border-0 text-success">− ₹{{ invoice.discount_amount|floatformat:2 }}</td>
+          </tr>
+          <tr>
+            <td class="text-muted border-0">Tax</td>
+            <td class="text-end border-0">+ ₹{{ invoice.tax_amount|floatformat:2 }}</td>
+          </tr>
+          <tr class="border-top">
+            <td class="fw-bold border-0 pt-3">Total Invoice</td>
+            <td class="text-end fw-bold fs-5 border-0 pt-3">₹{{ invoice.total_amount|floatformat:2 }}</td>
+          </tr>
+          <tr>
+            <td class="text-muted border-0">Amount Paid</td>
+            <td class="text-end border-0 text-success fw-semibold">₹{{ invoice.amount_paid|floatformat:2 }}</td>
+          </tr>
+          <tr>
+            <td class="fw-bold border-top pt-3 {% if invoice.outstanding_balance > 0 %}text-danger{% else %}text-success{% endif %}">
+              Outstanding Balance
+            </td>
+            <td class="text-end fw-bold fs-5 border-top pt-3 {% if invoice.outstanding_balance > 0 %}text-danger{% else %}text-success{% endif %}">
+              ₹{{ invoice.outstanding_balance|floatformat:2 }}
+            </td>
           </tr>
         </tbody>
       </table>
@@ -45,24 +149,40 @@
 
     {% if payments %}
     <div class="table-card">
-      <div class="p-3 border-bottom"><h6 class="fw-semibold mb-0">Payment History</h6></div>
-      <table class="table table-hover mb-0">
-        <thead><tr><th>Date</th><th>Method</th><th>Reference</th><th>Amount</th></tr></thead>
-        <tbody>
-          {% for pmt in payments %}
-          <tr>
-            <td>{{ pmt.payment_date }}</td>
-            <td>{{ pmt.get_payment_method_display }}</td>
-            <td>{{ pmt.reference_number|default:"—" }}</td>
-            <td class="fw-semibold text-success">₹{{ pmt.amount|floatformat:2 }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      <div class="card-header-row">
+        <h6><i class="bi bi-clock-history me-2 text-success"></i>Payment History</h6>
+        <span class="badge bg-success-subtle text-success border">{{ payments|length }} payment{{ payments|length|pluralize }}</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Method</th>
+              <th>Reference</th>
+              <th class="text-end">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for pmt in payments %}
+            <tr>
+              <td>{{ pmt.payment_date }}</td>
+              <td>{{ pmt.get_payment_method_display }}</td>
+              <td class="text-muted small">{{ pmt.reference_number|default:"—" }}</td>
+              <td class="text-end fw-semibold text-success">₹{{ pmt.amount|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
     {% endif %}
   </div>
 </div>
-<a href="{% url 'billing:invoice_list' %}" class="btn btn-sm btn-outline-secondary mt-3"><i class="bi bi-arrow-left me-1"></i>Back</a>
-{% endblock %}
 
+<div class="mt-3 no-print">
+  <a href="{% url 'billing:invoice_list' %}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i> Back to Invoices
+  </a>
+</div>
+{% endblock %}

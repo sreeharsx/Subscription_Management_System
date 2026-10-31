@@ -2,30 +2,81 @@
 {% block title %}Products{% endblock %}
 {% block page_title %}Products{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-  <h5 class="fw-semibold mb-0">Products</h5>
+
+<div class="page-header">
+  <div>
+    <h4><i class="bi bi-box-seam me-2 text-primary"></i>Products</h4>
+    <p class="text-muted">Manage your product catalogue and subscription plans.</p>
+  </div>
   {% if user.is_staff or user.is_superuser %}
-  <a href="{% url 'products:product_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Add Product</a>
+  <a href="{% url 'products:product_create' %}" class="btn btn-primary">
+    <i class="bi bi-plus-lg me-1"></i> Add Product
+  </a>
   {% endif %}
 </div>
-<div class="row g-3">
+
+{% if products %}
+<div class="row g-4">
   {% for product in products %}
-  <div class="col-md-4">
-    <div class="stat-card h-100">
-      <div class="d-flex justify-content-between align-items-start mb-2">
-        <h6 class="fw-semibold mb-0">{{ product.name }}</h6>
-        {% if product.is_active %}<span class="status-badge badge-active">Active</span>{% else %}<span class="status-badge badge-cancelled">Inactive</span>{% endif %}
+  <div class="col-md-6 col-xl-4">
+    <div class="stat-card h-100 d-flex flex-column">
+      <!-- Card header -->
+      <div class="d-flex align-items-start justify-content-between mb-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="stat-icon" style="background:#ede9fe;color:#7c3aed;font-size:1.2rem;">
+            <i class="bi bi-box"></i>
+          </div>
+          <div>
+            <div class="fw-semibold" style="font-size:.95rem;">{{ product.name }}</div>
+            <div class="text-muted" style="font-size:.75rem;">{{ product.product_type|default:"—" }}</div>
+          </div>
+        </div>
+        {% if product.is_active %}
+        <span class="status-badge badge-active">Active</span>
+        {% else %}
+        <span class="status-badge badge-cancelled">Inactive</span>
+        {% endif %}
       </div>
-      <p class="text-muted small mb-3">{{ product.description|default:"No description"|truncatechars:80 }}</p>
-      <div class="d-flex justify-content-between align-items-center">
-        <span class="text-muted small">{{ product.plans.count }} plan{{ product.plans.count|pluralize }}</span>
-        <a href="{% url 'products:product_detail' product.pk %}" class="btn btn-sm btn-outline-primary">View</a>
+
+      <!-- Description -->
+      <p class="text-muted small mb-3 flex-grow-1">
+        {{ product.description|default:"No description provided."|truncatechars:90 }}
+      </p>
+
+      <!-- Stats row -->
+      <div class="d-flex justify-content-between align-items-center py-2 border-top mb-3" style="font-size:.82rem;">
+        <span class="text-muted"><i class="bi bi-layers me-1"></i>{{ product.plans.count }} plan{{ product.plans.count|pluralize }}</span>
+        <span class="text-muted"><i class="bi bi-currency-rupee"></i>{{ product.sales_price|floatformat:2 }}</span>
+      </div>
+
+      <!-- Actions -->
+      <div class="d-flex gap-2">
+        <a href="{% url 'products:product_detail' product.pk %}" class="btn btn-sm btn-outline-primary flex-grow-1">
+          <i class="bi bi-eye me-1"></i>View
+        </a>
+        {% if user.is_staff or user.is_superuser %}
+        <a href="{% url 'products:product_edit' product.pk %}" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-pencil"></i>
+        </a>
+        {% endif %}
       </div>
     </div>
   </div>
-  {% empty %}
-  <div class="col-12 text-center text-muted py-5">No products yet. <a href="{% url 'products:product_create' %}">Create one</a>.</div>
   {% endfor %}
 </div>
-{% endblock %}
+{% else %}
+<div class="table-card">
+  <div class="empty-state">
+    <div class="empty-icon"><i class="bi bi-box-seam"></i></div>
+    <h6>No products yet</h6>
+    <p>Start by adding your first product to the catalogue.</p>
+    {% if user.is_staff or user.is_superuser %}
+    <a href="{% url 'products:product_create' %}" class="btn btn-primary">
+      <i class="bi bi-plus-lg me-1"></i>Add Product
+    </a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
 
+{% endblock %}

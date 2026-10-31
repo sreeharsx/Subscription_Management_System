@@ -2,40 +2,98 @@
 {% block title %}Invoices{% endblock %}
 {% block page_title %}Invoices{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-  <h5 class="fw-semibold mb-0">Invoices</h5>
+
+<div class="page-header">
+  <div>
+    <h4><i class="bi bi-receipt me-2 text-primary"></i>Invoices</h4>
+    <p class="text-muted">All billing invoices — view status, outstanding balances, and record payments.</p>
+  </div>
   {% if user.is_staff or user.is_superuser %}
-  <a href="{% url 'billing:run_billing' %}" class="btn btn-primary btn-sm"><i class="bi bi-lightning-charge me-1"></i>Run Billing</a>
+  <a href="{% url 'billing:run_billing' %}" class="btn btn-primary">
+    <i class="bi bi-lightning-charge me-1"></i> Run Billing
+  </a>
   {% endif %}
 </div>
-<div class="table-card">
-  <table class="table table-hover mb-0">
-    <thead><tr><th>Invoice #</th><th>Customer</th><th>Period</th><th>Status</th><th>Total</th><th>Paid</th><th>Outstanding</th><th>Due</th><th>Actions</th></tr></thead>
-    <tbody>
-      {% for inv in invoices %}
-      <tr>
-        <td><a href="{% url 'billing:invoice_detail' inv.pk %}" class="fw-semibold text-decoration-none">{{ inv.invoice_number }}</a></td>
-        <td>{{ inv.subscription.customer }}</td>
-        <td>{{ inv.billing_period_key }}</td>
-        <td><span class="status-badge badge-{{ inv.status|lower }}">{{ inv.get_status_display }}</span></td>
-        <td>₹{{ inv.total_amount|floatformat:2 }}</td>
-        <td class="text-success">₹{{ inv.amount_paid|floatformat:2 }}</td>
-        <td>{% if inv.outstanding_balance > 0 %}<span class="text-danger fw-semibold">₹{{ inv.outstanding_balance|floatformat:2 }}</span>{% else %}—{% endif %}</td>
-        <td>{{ inv.due_date }}</td>
-        <td>
-          <a href="{% url 'billing:invoice_detail' inv.pk %}" class="btn btn-sm btn-outline-secondary">View</a>
-          {% if user.is_staff or user.is_superuser %}
-            {% if inv.status != 'PAID' and inv.status != 'VOID' %}
-            <a href="{% url 'billing:record_payment' inv.pk %}" class="btn btn-sm btn-primary">Pay</a>
-            {% endif %}
-          {% endif %}
-        </td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="9" class="text-center text-muted py-4">No invoices. <a href="{% url 'billing:run_billing' %}">Run billing</a> to generate.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
-{% endblock %}
 
+<div class="table-card">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Invoice #</th>
+          {% if user.is_staff or user.is_superuser %}<th>Customer</th>{% endif %}
+          <th>Period</th>
+          <th>Status</th>
+          <th class="text-end">Total</th>
+          <th class="text-end">Paid</th>
+          <th class="text-end">Outstanding</th>
+          <th>Due Date</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inv in invoices %}
+        <tr>
+          <td>
+            <a href="{% url 'billing:invoice_detail' inv.pk %}" class="fw-semibold text-decoration-none">
+              {{ inv.invoice_number }}
+            </a>
+          </td>
+          {% if user.is_staff or user.is_superuser %}
+          <td class="text-muted small">{{ inv.subscription.customer }}</td>
+          {% endif %}
+          <td class="text-muted small">{{ inv.billing_period_key }}</td>
+          <td><span class="status-badge badge-{{ inv.status|lower }}">{{ inv.get_status_display }}</span></td>
+          <td class="text-end fw-semibold">₹{{ inv.total_amount|floatformat:2 }}</td>
+          <td class="text-end text-success">₹{{ inv.amount_paid|floatformat:2 }}</td>
+          <td class="text-end">
+            {% if inv.outstanding_balance > 0 %}
+            <span class="fw-semibold text-danger">₹{{ inv.outstanding_balance|floatformat:2 }}</span>
+            {% else %}
+            <span class="text-success">—</span>
+            {% endif %}
+          </td>
+          <td class="small {% if inv.status == 'OVERDUE' %}text-danger fw-semibold{% else %}text-muted{% endif %}">
+            {{ inv.due_date }}
+          </td>
+          <td>
+            <div class="d-flex gap-1 flex-nowrap">
+              <a href="{% url 'billing:invoice_detail' inv.pk %}" class="btn btn-sm btn-outline-secondary">View</a>
+              {% if user.is_staff or user.is_superuser %}
+                {% if inv.status != 'PAID' and inv.status != 'VOID' %}
+                <a href="{% url 'billing:record_payment' inv.pk %}" class="btn btn-sm btn-primary">Pay</a>
+                {% endif %}
+              {% else %}
+                {% if inv.status == 'ISSUED' or inv.status == 'PARTIALLY_PAID' or inv.status == 'OVERDUE' %}
+                  {% if inv.outstanding_balance > 0 %}
+                  <a href="{% url 'billing:invoice_detail' inv.pk %}" class="btn btn-sm btn-success">
+                    <i class="bi bi-credit-card-fill me-1"></i>Pay
+                  </a>
+                  {% endif %}
+                {% endif %}
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="9">
+            <div class="empty-state">
+              <div class="empty-icon"><i class="bi bi-receipt"></i></div>
+              <h6>No invoices found</h6>
+              <p>Run billing to generate invoices for active subscriptions.</p>
+              {% if user.is_staff or user.is_superuser %}
+              <a href="{% url 'billing:run_billing' %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-lightning-charge me-1"></i>Run Billing
+              </a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

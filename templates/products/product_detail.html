@@ -4,13 +4,35 @@
 
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-  <h5 class="fw-semibold mb-0">{{ product.name }}</h5>
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'products:product_list' %}">Products</a></li>
+    <li class="breadcrumb-item active">{{ product.name }}</li>
+  </ol>
+</nav>
+
+<div class="page-header">
+  <div>
+    <div class="d-flex align-items-center gap-3 mb-1">
+      <h4 class="mb-0">{{ product.name }}</h4>
+      {% if product.is_active %}
+      <span class="status-badge badge-active">Active</span>
+      {% else %}
+      <span class="status-badge badge-cancelled">Inactive</span>
+      {% endif %}
+    </div>
+    <p class="text-muted mb-0">Type: {{ product.product_type|default:"Standard" }} &bull; Created {{ product.created_at|date:"M d, Y" }}</p>
+  </div>
 
   {% if user.is_staff or user.is_superuser %}
   <div class="d-flex gap-2">
-    <a href="{% url 'products:product_edit' product.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
-    <a href="{% url 'products:plan_create' %}" class="btn btn-sm btn-primary">Add Plan</a>
+    <a href="{% url 'products:product_edit' product.pk %}" class="btn btn-sm btn-outline-primary">
+      <i class="bi bi-pencil me-1"></i>Edit
+    </a>
+    <a href="{% url 'products:plan_create' %}" class="btn btn-sm btn-primary">
+      <i class="bi bi-plus-lg me-1"></i>Add Plan
+    </a>
   </div>
   {% endif %}
 </div>
@@ -18,16 +40,16 @@
 <div class="row g-4">
   <div class="col-lg-4">
     <div class="form-card">
+      <div class="form-section-title">Product Information</div>
       <dl class="row mb-0">
-
         <dt class="col-5 text-muted small">Product Type</dt>
         <dd class="col-7">{{ product.product_type|default:"—" }}</dd>
 
         <dt class="col-5 text-muted small">Sales Price</dt>
-        <dd class="col-7">₹{{ product.sales_price|floatformat:2 }}</dd>
+        <dd class="col-7 fw-semibold">₹{{ product.sales_price|floatformat:2 }}</dd>
 
         <dt class="col-5 text-muted small">Cost Price</dt>
-        <dd class="col-7">₹{{ product.cost_price|floatformat:2 }}</dd>
+        <dd class="col-7 text-muted">₹{{ product.cost_price|floatformat:2 }}</dd>
 
         <dt class="col-5 text-muted small">Status</dt>
         <dd class="col-7">
@@ -38,133 +60,144 @@
           {% endif %}
         </dd>
 
-        <dt class="col-5 text-muted small">Plans</dt>
-        <dd class="col-7">{{ plans.count }}</dd>
+        <dt class="col-5 text-muted small">Total Plans</dt>
+        <dd class="col-7"><span class="badge bg-light text-dark border">{{ plans.count }}</span></dd>
 
         <dt class="col-5 text-muted small">Created</dt>
-        <dd class="col-7">{{ product.created_at|date:"M d, Y" }}</dd>
-
+        <dd class="col-7 text-muted small">{{ product.created_at|date:"M d, Y" }}</dd>
       </dl>
 
       {% if product.description %}
-      <p class="text-muted small mt-3 mb-0">{{ product.description }}</p>
+      <div class="mt-3 pt-3 border-top">
+        <div class="text-muted small fw-semibold mb-1">Description</div>
+        <p class="text-secondary small mb-0">{{ product.description }}</p>
+      </div>
       {% endif %}
     </div>
   </div>
 
   <div class="col-lg-8">
-    <div class="table-card">
-      <div class="p-3 border-bottom">
-        <h6 class="fw-semibold mb-0">Subscription Plans</h6>
+    <div class="table-card mb-4">
+      <div class="card-header-row">
+        <h6><i class="bi bi-layers me-2 text-primary"></i>Subscription Plans</h6>
+        {% if user.is_staff or user.is_superuser %}
+        <a href="{% url 'products:plan_create' %}" class="btn btn-sm btn-outline-primary">+ New Plan</a>
+        {% endif %}
       </div>
 
-      <table class="table table-hover mb-0">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Cycle</th>
-            <th>Price</th>
-            <th>Status</th>
-            <th></th>
-          </tr>
-        </thead>
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th>Plan Name</th>
+              <th>Billing Cycle</th>
+              <th>Base Price</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
 
-        <tbody>
-          {% for plan in plans %}
-          <tr>
-            <td>
-              <a href="{% url 'products:plan_detail' plan.pk %}" class="text-decoration-none fw-semibold">
-                {{ plan.name }}
-              </a>
-            </td>
-            <td>{{ plan.get_billing_cycle_display }}</td>
-            <td>₹{{ plan.base_price|floatformat:2 }}</td>
-            <td>
-              {% if plan.is_active %}
-              <span class="status-badge badge-active">Active</span>
-              {% else %}
-              <span class="status-badge badge-cancelled">Inactive</span>
-              {% endif %}
-            </td>
-            <td>
-              <a href="{% url 'products:plan_edit' plan.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
-            </td>
-          </tr>
+          <tbody>
+            {% for plan in plans %}
+            <tr>
+              <td>
+                <a href="{% url 'products:plan_detail' plan.pk %}" class="text-decoration-none fw-semibold">
+                  {{ plan.name }}
+                </a>
+              </td>
+              <td class="text-muted small">{{ plan.get_billing_cycle_display }}</td>
+              <td class="fw-semibold">₹{{ plan.base_price|floatformat:2 }}</td>
+              <td>
+                {% if plan.is_active %}
+                <span class="status-badge badge-active">Active</span>
+                {% else %}
+                <span class="status-badge badge-cancelled">Inactive</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="d-flex gap-1 justify-content-end">
+                  <a href="{% url 'products:plan_detail' plan.pk %}" class="btn btn-sm btn-outline-secondary">View</a>
+                  {% if user.is_staff or user.is_superuser %}
+                  <a href="{% url 'products:plan_edit' plan.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
 
-          {% empty %}
-          <tr>
-            <td colspan="5" class="text-center text-muted py-3">
-              No plans. <a href="{% url 'products:plan_create' %}">Create one</a>.
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+            {% empty %}
+            <tr>
+              <td colspan="5" class="text-center text-muted py-4">
+                No subscription plans configured yet.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Product Variants -->
+    <div class="table-card">
+      <div class="card-header-row">
+        <h6><i class="bi bi-diagram-3 me-2 text-primary"></i>Product Variants</h6>
+
+        {% if user.is_staff or user.is_superuser %}
+        <a href="{% url 'products:variant_create' product.pk %}" class="btn btn-sm btn-primary">
+          <i class="bi bi-plus-lg me-1"></i>Add Variant
+        </a>
+        {% endif %}
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th>Variant Name</th>
+              <th>Additional Price</th>
+              <th>Description</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {% for variant in variants %}
+            <tr>
+              <td class="fw-semibold">{{ variant.name }}</td>
+              <td class="text-success fw-semibold">+ ₹{{ variant.additional_price|floatformat:2 }}</td>
+              <td class="text-muted small">{{ variant.description|default:"—" }}</td>
+              <td>
+                {% if variant.is_active %}
+                <span class="status-badge badge-active">Active</span>
+                {% else %}
+                <span class="status-badge badge-cancelled">Inactive</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if user.is_staff or user.is_superuser %}
+                <a href="{% url 'products:variant_edit' variant.pk %}" class="btn btn-sm btn-outline-primary">
+                  Edit
+                </a>
+                {% endif %}
+              </td>
+            </tr>
+
+            {% empty %}
+            <tr>
+              <td colspan="5" class="text-center text-muted py-4">
+                No variants added yet.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- Product Variants -->
-<div class="table-card mt-4">
-
-  <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
-    <h6 class="fw-semibold mb-0">Product Variants</h6>
-
-    {% if user.is_staff or user.is_superuser %}
-    <a href="{% url 'products:variant_create' product.pk %}" class="btn btn-sm btn-primary">
-      + Add Variant
-    </a>
-    {% endif %}
-  </div>
-
-  <div class="table-responsive">
-    <table class="table table-hover mb-0">
-      <thead>
-        <tr>
-          <th>Variant Name</th>
-          <th>Additional Price</th>
-          <th>Description</th>
-          <th>Status</th>
-          <th></th>
-        </tr>
-      </thead>
-
-      <tbody>
-        {% for variant in variants %}
-        <tr>
-          <td class="fw-semibold">{{ variant.name }}</td>
-          <td>₹{{ variant.additional_price|floatformat:2 }}</td>
-          <td>{{ variant.description|default:"—" }}</td>
-          <td>
-            {% if variant.is_active %}
-            <span class="status-badge badge-active">Active</span>
-            {% else %}
-            <span class="status-badge badge-cancelled">Inactive</span>
-            {% endif %}
-          </td>
-          <td>
-            {% if user.is_staff or user.is_superuser %}
-            <a href="{% url 'products:variant_edit' variant.pk %}" class="btn btn-sm btn-outline-primary">
-              Edit
-            </a>
-            {% endif %}
-          </td>
-        </tr>
-
-        {% empty %}
-        <tr>
-          <td colspan="5" class="text-center text-muted py-3">
-            No variants added yet.
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
-
 <a href="{% url 'products:product_list' %}" class="btn btn-sm btn-outline-secondary mt-3">
-  <i class="bi bi-arrow-left me-1"></i>Back
+  <i class="bi bi-arrow-left me-1"></i>Back to Products
 </a>
 
 {% endblock %}

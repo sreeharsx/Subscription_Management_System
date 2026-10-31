@@ -2,50 +2,119 @@
 {% block title %}{{ customer }}{% endblock %}
 {% block page_title %}Customer Detail{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-  <h5 class="fw-semibold mb-0">{{ customer.user.get_full_name|default:customer.user.username }}</h5>
-  <div class="d-flex gap-2">
+
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'accounts:customer_list' %}">Customers</a></li>
+    <li class="breadcrumb-item active">{{ customer.user.get_full_name|default:customer.user.username }}</li>
+  </ol>
+</nav>
+
+<!-- Page header -->
+<div class="page-header">
+  <div class="d-flex align-items-center gap-3">
+    <div style="width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#4F46E5,#818cf8);display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.5rem;font-weight:700;flex-shrink:0;">
+      {{ customer.user.get_full_name|default:customer.user.username|first|upper }}
+    </div>
+    <div>
+      <h4 class="mb-0">{{ customer.user.get_full_name|default:customer.user.username }}</h4>
+      <p class="text-muted mb-0">{{ customer.company_name|default:"Individual" }} &bull; <code style="font-size:.82rem;">{{ customer.user.username }}</code></p>
+    </div>
+  </div>
+  <div class="d-flex gap-2" >
     {% if user.is_staff or user.is_superuser %}
-    <a href="{% url 'accounts:customer_edit' customer.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
-    <a href="{% url 'quotations:quotation_create' %}" class="btn btn-sm btn-primary">New Quotation</a>
+    <a href="{% url 'accounts:customer_edit' customer.pk %}" class="btn btn-sm btn-outline-primary">
+      <i class="bi bi-pencil me-1"></i> Edit
+    </a>
+    <a href="{% url 'quotations:quotation_create' %}" class="btn btn-sm btn-primary">
+      <i class="bi bi-plus-lg me-1"></i> New Quotation
+    </a>
     {% endif %}
   </div>
 </div>
+
 <div class="row g-4">
+  <!-- Profile card -->
   <div class="col-lg-4">
     <div class="form-card">
-      <h6 class="fw-semibold mb-3">Profile</h6>
+      <div class="form-section-title">Profile Information</div>
       <dl class="row mb-0">
-        <dt class="col-5 text-muted small">Username</dt><dd class="col-7">{{ customer.user.username }}</dd>
-        <dt class="col-5 text-muted small">Email</dt><dd class="col-7">{{ customer.user.email|default:"—" }}</dd>
-        <dt class="col-5 text-muted small">Company</dt><dd class="col-7">{{ customer.company_name|default:"—" }}</dd>
-        <dt class="col-5 text-muted small">Phone</dt><dd class="col-7">{{ customer.phone|default:"—" }}</dd>
-        <dt class="col-5 text-muted small">GST</dt><dd class="col-7">{{ customer.gst_number|default:"—" }}</dd>
-        <dt class="col-5 text-muted small">Since</dt><dd class="col-7">{{ customer.created_at|date:"M d, Y" }}</dd>
+        <dt class="col-5 text-muted small">Full Name</dt>
+        <dd class="col-7">{{ customer.user.get_full_name|default:"—" }}</dd>
+
+        <dt class="col-5 text-muted small">Username</dt>
+        <dd class="col-7"><code>{{ customer.user.username }}</code></dd>
+
+        <dt class="col-5 text-muted small">Email</dt>
+        <dd class="col-7 text-truncate">{{ customer.user.email|default:"—" }}</dd>
+
+        <dt class="col-5 text-muted small">Company</dt>
+        <dd class="col-7">{{ customer.company_name|default:"—" }}</dd>
+
+        <dt class="col-5 text-muted small">Phone</dt>
+        <dd class="col-7">{{ customer.phone|default:"—" }}</dd>
+
+        <dt class="col-5 text-muted small">GST</dt>
+        <dd class="col-7">{{ customer.gst_number|default:"—" }}</dd>
+
+        <dt class="col-5 text-muted small">Customer Since</dt>
+        <dd class="col-7">{{ customer.created_at|date:"M d, Y" }}</dd>
       </dl>
+      {% if customer.address %}
+      <div class="mt-3 pt-3 border-top">
+        <div class="text-muted small fw-semibold mb-1">Address</div>
+        <div class="small">{{ customer.address }}</div>
+      </div>
+      {% endif %}
     </div>
   </div>
+
+  <!-- Subscriptions -->
   <div class="col-lg-8">
     <div class="table-card mb-4">
-      <div class="p-3 border-bottom"><h6 class="fw-semibold mb-0">Subscriptions</h6></div>
-      <table class="table table-hover mb-0">
-        <thead><tr><th>#</th><th>Plan</th><th>Status</th><th>Next Billing</th></tr></thead>
-        <tbody>
-          {% for sub in customer.subscriptions.all %}
-          <tr>
-            <td><a href="{% url 'subscriptions:subscription_detail' sub.pk %}" class="text-decoration-none">SUB-{{ sub.pk|stringformat:"04d" }}</a></td>
-            <td>{{ sub.plan.name }}</td>
-            <td><span class="status-badge badge-{{ sub.status|lower }}">{{ sub.get_status_display }}</span></td>
-            <td>{{ sub.next_billing_date }}</td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="4" class="text-center text-muted py-3">No subscriptions.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      <div class="card-header-row">
+        <h6><i class="bi bi-arrow-repeat me-2 text-primary"></i>Subscriptions</h6>
+        {% if user.is_staff or user.is_superuser %}
+        <a href="{% url 'quotations:quotation_create' %}" class="btn btn-sm btn-outline-primary">+ New</a>
+        {% endif %}
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Plan</th>
+              <th>Status</th>
+              <th>Next Billing</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for sub in customer.subscriptions.all %}
+            <tr>
+              <td><a href="{% url 'subscriptions:subscription_detail' sub.pk %}" class="fw-semibold text-decoration-none">SUB-{{ sub.pk|stringformat:"04d" }}</a></td>
+              <td>{{ sub.plan.name }}</td>
+              <td><span class="status-badge badge-{{ sub.status|lower }}">{{ sub.get_status_display }}</span></td>
+              <td class="text-muted small">{{ sub.next_billing_date }}</td>
+              <td><a href="{% url 'subscriptions:subscription_detail' sub.pk %}" class="btn btn-sm btn-outline-secondary">View</a></td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5" class="text-center text-muted py-3">
+                <i class="bi bi-arrow-repeat me-1"></i> No subscriptions yet.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
-<a href="{% url 'accounts:customer_list' %}" class="btn btn-sm btn-outline-secondary mt-2"><i class="bi bi-arrow-left me-1"></i>Back</a>
-{% endblock %}
 
+<a href="{% url 'accounts:customer_list' %}" class="btn btn-sm btn-outline-secondary mt-2">
+  <i class="bi bi-arrow-left me-1"></i> Back to Customers
+</a>
+
+{% endblock %}

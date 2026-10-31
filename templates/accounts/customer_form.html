@@ -2,33 +2,64 @@
 {% block title %}{{ title }}{% endblock %}
 {% block page_title %}{{ title }}{% endblock %}
 {% block content %}
+
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'accounts:customer_list' %}">Customers</a></li>
+    <li class="breadcrumb-item active">{{ title }}</li>
+  </ol>
+</nav>
+
 <div class="row justify-content-center">
   <div class="col-lg-7">
     <div class="form-card">
-      <h5 class="fw-semibold mb-4">{{ title }}</h5>
+      <div class="d-flex align-items-center gap-3 mb-3">
+        <div class="stat-icon" style="width:40px;height:40px;background:#ede9fe;color:#7c3aed;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;">
+          <i class="bi bi-person-badge"></i>
+        </div>
+        <div>
+          <h5 class="fw-semibold mb-0">{{ title }}</h5>
+          <span class="text-muted small">Manage account credentials and customer company profile</span>
+        </div>
+      </div>
+
       <form method="post" novalidate>
         {% csrf_token %}
         {% if not edit %}
-        <h6 class="text-muted fw-semibold mb-3 small text-uppercase">Login Details</h6>
+        <div class="form-section-title">Login Credentials</div>
         {% for field in user_form %}
         <div class="mb-3">
-          <label class="form-label fw-semibold small">{{ field.label }}</label>
+          <label class="form-label fw-semibold small" for="{{ field.id_for_label }}">{{ field.label }}</label>
           {{ field }}
           {% if field.errors %}<div class="text-danger small mt-1">{{ field.errors.0 }}</div>{% endif %}
+          {% if field.help_text %}<div class="text-muted small mt-1">{{ field.help_text }}</div>{% endif %}
         </div>
         {% endfor %}
-        <hr>
+        <div class="my-4"></div>
         {% endif %}
-        <h6 class="text-muted fw-semibold mb-3 small text-uppercase">Profile Details</h6>
+
+        <div class="form-section-title">Company & Profile Information</div>
         {% for field in profile_form %}
         <div class="mb-3">
-          <label class="form-label fw-semibold small">{{ field.label }}</label>
+          {% if field.field.widget.input_type == 'checkbox' %}
+          <div class="form-check form-switch mt-2">
+            {{ field }}
+            <label class="form-check-label fw-semibold small" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          </div>
+          {% else %}
+          <label class="form-label fw-semibold small" for="{{ field.id_for_label }}">{{ field.label }}</label>
           {{ field }}
+          {% endif %}
           {% if field.errors %}<div class="text-danger small mt-1">{{ field.errors.0 }}</div>{% endif %}
+          {% if field.help_text %}<div class="text-muted small mt-1">{{ field.help_text }}</div>{% endif %}
         </div>
         {% endfor %}
-        <div class="d-flex gap-2 mt-4">
-          <button type="submit" class="btn btn-primary">Save Customer</button>
+
+        <div class="d-flex gap-2 mt-4 pt-3 border-top">
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-lg me-1"></i>Save Customer
+          </button>
           <a href="{% url 'accounts:customer_list' %}" class="btn btn-outline-secondary">Cancel</a>
         </div>
       </form>
@@ -36,4 +67,3 @@
   </div>
 </div>
 {% endblock %}
-
