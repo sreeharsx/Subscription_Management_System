@@ -16,6 +16,7 @@ from billing.services import (
     generate_invoice_for_subscription,
     record_payment,
     run_billing_for_all_active_subscriptions,
+    update_overdue_invoices,
 )
 
 
@@ -585,3 +586,139 @@ class UpdateOverdueInvoicesTestCase(TestCase):
         self.assertIn('updated: 1', first_output)
         self.assertIn('updated: 0', second_output)
         self.assertIn('already overdue: 1', second_output)
+
+
+class UpdateOverdueInvoicesServiceTestCase(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='service-overdue-user',
+            password='testpass123',
+        )
+        self.customer = CustomerProfile.objects.create(
+            user=self.user,
+            company_name='Service Overdue Company',
+        )
+        self.product = Product.objects.create(
+            name='Service Overdue Product',
+            description='Product for service overdue tests',
+        )
+        self.plan = SubscriptionPlan.objects.create(
+            product=self.product,
+            name='Service Overdue Plan',
+            billing_cycle='MONTHLY',
+            base_price=Decimal('100.00'),
+        )
+        quotation = Quotation.objects.create(
+            customer=self.customer,
+            plan=self.plan,
+            status='ACCEPTED',
+        )
+        quotation.calculate_totals()
+        quotation.save()
+        self.subscription = create_subscription_from_quotation(quotation)
+        self.invoice_seq = 0
+
+    def create_invoice(self, status='ISSUED', amount_paid=Decimal('0.00'), due_date=None, total_amount=Decimal('100.00')):
+        self.invoice_seq += 1
+        if due_date is None:
+            due_date = timezone.localdate() - timedelta(days=1)
+
+        return Invoice.objects.create(
+            subscription=self.subscription,
+            invoice_number=f'SRV-OVERDUE-{self.invoice_seq}',
+            billing_period_key=f'srv-overdue-{self.invoice_seq}',
+            status=status,
+            base_amount=total_amount,
+            discount_amount=Decimal('0.00'),
+            tax_amount=Decimal('0.00'),
+            total_amount=total_amount,
+            amount_paid=amount_paid,
+            issue_date=due_date - timedelta(days=15),
+            due_date=due_date,
+        )
+
+    def test_service_unpaid_past_due_marked_overdue(self):
+        inv = self.create_invoice(status='ISSUED')
+        result = update_overdue_invoices()
+
+        inv.refresh_from_db()
+        self.assertEqual(inv.status, 'OVERDUE')
+        self.assertEqual(result['eligible_count'], 1)
+        self.assertEqual(result['updated_count'], 1)
+        self.assertEqual(result['already_overdue_count'], 0)
+        self.assertFalse(result['dry_run'])
+        self.assertEqual(len(result['details']), 1)
+        self.assertTrue(result['details'][0]['is_updated'])
+        self.assertEqual(result['details'][0]['previous_status'], 'ISSUED')
+
+    def test_service_partially_paid_past_due_marked_overdue(self):
+        inv = self.create_invoice(status='PARTIALLY_PAID', amount_paid=Decimal('40.00'))
+        result = update_overdue_invoices()
+
+        inv.refresh_from_db()
+        self.assertEqual(inv.status, 'OVERDUE')
+        self.assertEqual(inv.amount_paid, Decimal('40.00'))
+        self.assertEqual(result['updated_count'], 1)
+
+    def test_service_paid_and_void_invoices_never_marked_overdue(self):
+        paid_inv = self.create_invoice(status='PAID', amount_paid=Decimal('100.00'))
+        void_inv = self.create_invoice(status='VOID', amount_paid=Decimal('0.00'))
+
+        result = update_overdue_invoices()
+
+        paid_inv.refresh_from_db()
+        void_inv.refresh_from_db()
+        self.assertEqual(paid_inv.status, 'PAID')
+        self.assertEqual(void_inv.status, 'VOID')
+        self.assertEqual(result['eligible_count'], 0)
+        self.assertEqual(result['updated_count'], 0)
+
+    def test_service_already_overdue_avoids_duplicate_processing(self):
+        overdue_inv = self.create_invoice(status='OVERDUE')
+
+        result = update_overdue_invoices()
+
+        overdue_inv.refresh_from_db()
+        self.assertEqual(overdue_inv.status, 'OVERDUE')
+        self.assertEqual(result['eligible_count'], 1)
+        self.assertEqual(result['already_overdue_count'], 1)
+        self.assertEqual(result['updated_count'], 0)
+        self.assertFalse(result['details'][0]['is_updated'])
+
+    def test_service_dry_run_does_not_mutate_database(self):
+        inv = self.create_invoice(status='ISSUED')
+
+        result = update_overdue_invoices(dry_run=True)
+
+        inv.refresh_from_db()
+        self.assertEqual(inv.status, 'ISSUED')
+        self.assertTrue(result['dry_run'])
+        self.assertEqual(result['eligible_count'], 1)
+        self.assertEqual(result['updated_count'], 1)
+        self.assertEqual(result['already_overdue_count'], 0)
+        self.assertFalse(result['details'][0]['is_updated'])
+
+    def test_run_billing_automatically_updates_overdue_invoices_and_preserves_contract(self):
+        past_due_inv = self.create_invoice(status='ISSUED')
+        today = timezone.localdate()
+
+        # Set next_billing_date of active subscription to today so it gets billed
+        self.subscription.next_billing_date = today
+        self.subscription.save(update_fields=['next_billing_date'])
+
+        billing_result = run_billing_for_all_active_subscriptions(billing_date=today)
+
+        past_due_inv.refresh_from_db()
+        self.assertEqual(past_due_inv.status, 'OVERDUE')
+
+        # Verify billing return contract is preserved
+        self.assertIn('billing_date', billing_result)
+        self.assertIn('total_processed', billing_result)
+        self.assertIn('invoices_created', billing_result)
+        self.assertIn('invoices_skipped', billing_result)
+        self.assertIn('errors', billing_result)
+        self.assertIn('error_details', billing_result)
+        self.assertIn('overdue_invoices_updated', billing_result)
+        self.assertEqual(billing_result['overdue_invoices_updated'], 1)
+        self.assertEqual(billing_result['invoices_created'], 1)
+

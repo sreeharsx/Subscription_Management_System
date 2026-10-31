@@ -5,6 +5,7 @@ All monetary calculations use Decimal.
 from datetime import date
 from decimal import Decimal
 from django.db import transaction, IntegrityError
+from django.db.models import F
 from django.utils import timezone
 from subscriptions.models import Subscription
 from accounts.services import log_activity
@@ -103,6 +104,61 @@ def record_payment(invoice: Invoice, amount: Decimal, payment_method: str,
     return payment
 
 
+def update_overdue_invoices(as_of_date: date = None, dry_run: bool = False) -> dict:
+    """
+    Mark past-due invoices with outstanding balances as OVERDUE.
+    Excludes PAID and VOID invoices.
+    Avoids duplicate processing for invoices already marked OVERDUE.
+
+    Returns a summary dict with counts and per-invoice details.
+    """
+    if as_of_date is None:
+        as_of_date = timezone.localdate()
+
+    eligible_invoices = Invoice.objects.filter(
+        due_date__lt=as_of_date,
+        total_amount__gt=F("amount_paid"),
+    ).exclude(status__in=["PAID", "VOID"]).order_by("pk")
+
+    eligible_count = eligible_invoices.count()
+    updated_count = 0
+    already_overdue_count = 0
+    details = []
+
+    with transaction.atomic():
+        for invoice in eligible_invoices:
+            outstanding_balance = invoice.outstanding_balance
+            previous_status = invoice.status
+            is_updated = False
+
+            if previous_status == "OVERDUE":
+                already_overdue_count += 1
+            else:
+                updated_count += 1
+                if not dry_run:
+                    invoice.status = "OVERDUE"
+                    invoice.save(update_fields=["status"])
+                    is_updated = True
+
+            details.append({
+                "invoice": invoice,
+                "invoice_number": invoice.invoice_number,
+                "previous_status": previous_status,
+                "new_status": "OVERDUE",
+                "outstanding_balance": outstanding_balance,
+                "is_updated": is_updated,
+            })
+
+    return {
+        "as_of_date": as_of_date,
+        "eligible_count": eligible_count,
+        "updated_count": updated_count,
+        "already_overdue_count": already_overdue_count,
+        "dry_run": dry_run,
+        "details": details,
+    }
+
+
 def run_billing_for_all_active_subscriptions(billing_date: date = None) -> dict:
     """
     Run billing for all active subscriptions due on or before billing_date.
@@ -110,6 +166,8 @@ def run_billing_for_all_active_subscriptions(billing_date: date = None) -> dict:
     """
     if billing_date is None:
         billing_date = date.today()
+
+    overdue_summary = update_overdue_invoices(as_of_date=billing_date)
 
     active_subs = Subscription.objects.filter(
         status='ACTIVE',
@@ -146,4 +204,5 @@ def run_billing_for_all_active_subscriptions(billing_date: date = None) -> dict:
         'invoices_skipped': skipped_count,
         'errors': error_count,
         'error_details': errors,
+        'overdue_invoices_updated': overdue_summary['updated_count'],
     }
