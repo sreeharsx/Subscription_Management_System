@@ -27,8 +27,24 @@ class ProductVariantForm(forms.ModelForm):
 class SubscriptionPlanForm(forms.ModelForm):
     class Meta:
         model = SubscriptionPlan
-        fields = ['product', 'name', 'description', 'billing_cycle', 'base_price', 'is_active']
-        widgets = {'description': forms.Textarea(attrs={'rows': 3})}
+        fields = [
+            'product',
+            'name',
+            'description',
+            'billing_cycle',
+            'base_price',
+            'minimum_quantity',
+            'start_date',
+            'end_date',
+            'auto_close',
+            'is_active'
+        ]
+
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 3}),
+            'start_date': forms.DateInput(attrs={'type': 'date'}),
+            'end_date': forms.DateInput(attrs={'type': 'date'}),
+        }
 
 
 class TaxConfigurationForm(forms.ModelForm):
