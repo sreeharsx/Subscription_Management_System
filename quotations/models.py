@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from decimal import Decimal
+from datetime import date
 from accounts.models import CustomerProfile
 from products.models import SubscriptionPlan, TaxConfiguration, DiscountConfiguration
 
@@ -35,19 +36,40 @@ class Quotation(models.Model):
     def __str__(self):
         return f"QT-{self.pk:04d} — {self.customer} ({self.status})"
 
+    @property
+    def is_expired(self):
+        """Check if quotation has passed its validity date."""
+        return bool(self.valid_until and self.valid_until < date.today())
+
     def can_accept(self):
+        """Only unexpired SENT quotations can be accepted."""
+        return self.status == 'SENT' and not self.is_expired
+
+    def can_reject(self, is_staff=True):
+        """Staff can reject DRAFT or SENT quotations; customers may reject only SENT quotations."""
+        if is_staff:
+            return self.status in ('DRAFT', 'SENT')
         return self.status == 'SENT'
 
-    def can_reject(self):
-        return self.status in ('DRAFT', 'SENT')
-
     def can_send(self):
-        return self.status == 'DRAFT'
+        """Only unexpired DRAFT quotations can be sent."""
+        return self.status == 'DRAFT' and not self.is_expired
 
-    def calculate_totals(self):
-        """Recalculate and set pricing fields."""
-        base = self.plan.base_price
-        self.base_price = base
+    def calculate_totals(self, preserve_base_price=False):
+        """
+        Calculate and snapshot pricing fields.
+        Rule: Base Price -> Eligible Discount -> Taxable -> Applicable Tax -> Final Total.
+        Immutable rule: Never recalculate ACCEPTED or REJECTED quotations.
+        If preserve_base_price is True and self.base_price is present, reuses the existing base_price snapshot.
+        """
+        if self.status in ('ACCEPTED', 'REJECTED') and self.pk and self.total_amount is not None:
+            return
+
+        if preserve_base_price and self.base_price is not None:
+            base = self.base_price
+        else:
+            base = self.plan.base_price
+            self.base_price = base
 
         discount_amt = Decimal('0.00')
         if self.discount:
@@ -62,7 +84,11 @@ class Quotation(models.Model):
         self.total_amount = taxable + tax_amt
 
     def save(self, *args, **kwargs):
-        if self.base_price is None or self.total_amount is None:
+        """
+        Save quotation while preserving historical pricing snapshots.
+        Recalculates only when base_price or total_amount is not set and status is not final.
+        """
+        if (self.base_price is None or self.total_amount is None) and self.status not in ('ACCEPTED', 'REJECTED'):
             self.calculate_totals()
         super().save(*args, **kwargs)
 

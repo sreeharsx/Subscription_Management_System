@@ -11,4 +11,6 @@ urlpatterns = [
     path('<int:pk>/send/', views.quotation_send, name='quotation_send'),
     path('<int:pk>/accept/', views.quotation_accept, name='quotation_accept'),
     path('<int:pk>/reject/', views.quotation_reject, name='quotation_reject'),
+    path('<int:pk>/customer-accept/', views.quotation_customer_accept, name='quotation_customer_accept'),
+    path('<int:pk>/customer-reject/', views.quotation_customer_reject, name='quotation_customer_reject'),
 ]

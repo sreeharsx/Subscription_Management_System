@@ -3,14 +3,56 @@
 {% block page_title %}Quotations{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-  <h5 class="fw-semibold mb-0">Quotations</h5>
+  <div>
+    <h5 class="fw-semibold mb-0">Quotations</h5>
+    <small class="text-muted">Showing {{ quotations|length }} quotation{{ quotations|length|pluralize }}</small>
+  </div>
   {% if user.is_staff or user.is_superuser %}
   <a href="{% url 'quotations:quotation_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>New Quotation</a>
   {% endif %}
 </div>
+
+<!-- Search & Status Filter Card -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body py-3">
+    <form method="get" class="row g-2 align-items-center">
+      <div class="col-md-5">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
+          <input type="text" name="q" class="form-control border-start-0" placeholder="Search by customer, email, plan, or QT ID..." value="{{ search_query }}">
+        </div>
+      </div>
+      <div class="col-md-3">
+        <select name="status" class="form-select form-select-sm">
+          <option value="">All Statuses</option>
+          {% for code, label in status_choices %}
+            <option value="{{ code }}" {% if status_filter == code %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4 d-flex gap-2">
+        <button type="submit" class="btn btn-sm btn-primary">Filter</button>
+        {% if search_query or status_filter %}
+          <a href="{% url 'quotations:quotation_list' %}" class="btn btn-sm btn-outline-secondary">Clear</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+
 <div class="table-card">
   <table class="table table-hover mb-0">
-    <thead><tr><th>#</th><th>Customer</th><th>Plan</th><th>Status</th><th>Total</th><th>Valid Until</th><th>Actions</th></tr></thead>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Customer</th>
+        <th>Plan</th>
+        <th>Status</th>
+        <th>Total</th>
+        <th>Valid Until</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
     <tbody>
       {% for qt in quotations %}
       <tr>
@@ -19,14 +61,26 @@
         <td>{{ qt.plan.name }}</td>
         <td><span class="status-badge badge-{{ qt.status|lower }}">{{ qt.get_status_display }}</span></td>
         <td>₹{{ qt.total_amount|floatformat:2 }}</td>
-        <td>{{ qt.valid_until|default:"—" }}</td>
+        <td>
+          {{ qt.valid_until|default:"—" }}
+          {% if qt.is_expired and qt.status == 'SENT' %}
+            <span class="badge bg-danger ms-1" style="font-size: 0.7rem;">Expired</span>
+          {% endif %}
+        </td>
         <td><a href="{% url 'quotations:quotation_detail' qt.pk %}" class="btn btn-sm btn-outline-secondary">View</a></td>
       </tr>
       {% empty %}
-      <tr><td colspan="7" class="text-center text-muted py-4">No quotations yet.</td></tr>
+      <tr>
+        <td colspan="7" class="text-center text-muted py-4">
+          {% if search_query or status_filter %}
+            No quotations found matching your criteria. <a href="{% url 'quotations:quotation_list' %}" class="text-decoration-none">Clear filter</a>
+          {% else %}
+            No quotations yet.
+          {% endif %}
+        </td>
+      </tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
 {% endblock %}
-

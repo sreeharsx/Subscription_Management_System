@@ -6,20 +6,65 @@
   <div>
     <h5 class="fw-semibold mb-1">QT-{{ quotation.pk|stringformat:"04d" }}</h5>
     <span class="status-badge badge-{{ quotation.status|lower }}">{{ quotation.get_status_display }}</span>
+    {% if quotation.is_expired and quotation.status == 'SENT' %}
+      <span class="badge bg-danger ms-2">Expired</span>
+    {% endif %}
   </div>
   <div class="d-flex gap-2">
+    {# Staff actions #}
     {% if user.is_staff or user.is_superuser %}
       {% if quotation.status == 'DRAFT' %}
         <a href="{% url 'quotations:quotation_edit' quotation.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
-        <form method="post" action="{% url 'quotations:quotation_send' quotation.pk %}">{% csrf_token %}<button class="btn btn-sm btn-info text-white">Send to Customer</button></form>
+        {% if quotation.can_send %}
+          <form method="post" action="{% url 'quotations:quotation_send' quotation.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-info text-white">Send to Customer</button>
+          </form>
+        {% endif %}
       {% endif %}
       {% if quotation.status == 'SENT' %}
-        <form method="post" action="{% url 'quotations:quotation_accept' quotation.pk %}">{% csrf_token %}<button class="btn btn-sm btn-success">Accept & Create Subscription</button></form>
-        <form method="post" action="{% url 'quotations:quotation_reject' quotation.pk %}">{% csrf_token %}<button class="btn btn-sm btn-danger" onclick="return confirm('Reject this quotation?')">Reject</button></form>
+        {% if quotation.can_accept %}
+          <form method="post" action="{% url 'quotations:quotation_accept' quotation.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-success">Accept & Create Subscription</button>
+          </form>
+        {% endif %}
+        {% if quotation.can_reject %}
+          <form method="post" action="{% url 'quotations:quotation_reject' quotation.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Reject this quotation?')">Reject</button>
+          </form>
+        {% endif %}
+      {% endif %}
+    {% endif %}
+
+    {# Customer actions (only for owning customer on SENT quotations) #}
+    {% if is_owner_customer and quotation.status == 'SENT' %}
+      {% if quotation.can_accept %}
+        <form method="post" action="{% url 'quotations:quotation_customer_accept' quotation.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm btn-success"><i class="bi bi-check-circle me-1"></i>Accept Quotation</button>
+        </form>
+      {% endif %}
+      {% if not quotation.is_expired %}
+        <form method="post" action="{% url 'quotations:quotation_customer_reject' quotation.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to reject this quotation?')"><i class="bi bi-x-circle me-1"></i>Reject</button>
+        </form>
       {% endif %}
     {% endif %}
   </div>
 </div>
+
+{# Expiration alert for customer or staff when viewing an expired quotation #}
+{% if quotation.is_expired and quotation.status == 'SENT' %}
+<div class="alert alert-warning d-flex align-items-center mb-4" role="alert">
+  <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+  <div>
+    <strong>Quotation Expired:</strong> This quotation had a validity date of <strong>{{ quotation.valid_until }}</strong> and can no longer be accepted.
+  </div>
+</div>
+{% endif %}
 
 <div class="row g-4">
   <div class="col-lg-5">
@@ -64,4 +109,3 @@
 </div>
 <a href="{% url 'quotations:quotation_list' %}" class="btn btn-sm btn-outline-secondary mt-3"><i class="bi bi-arrow-left me-1"></i>Back</a>
 {% endblock %}
-
