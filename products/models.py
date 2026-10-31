@@ -116,8 +116,36 @@ class SubscriptionPlan(models.Model):
 
 
 class TaxConfiguration(models.Model):
+    TAX_SCOPE_CHOICES = [
+        ('PRODUCT', 'Specific Product'),
+        ('SUBSCRIPTION', 'Entire Subscription'),
+    ]
+
     name = models.CharField(max_length=100)
-    rate = models.DecimalField(max_digits=5, decimal_places=2, help_text="Percentage, e.g. 18.00 for 18%")
+
+    rate = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        help_text="Percentage, e.g. 18.00 for 18%"
+    )
+
+    tax_scope = models.CharField(
+        max_length=20,
+        choices=TAX_SCOPE_CHOICES,
+        default='SUBSCRIPTION'
+    )
+
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='tax_configurations'
+    )
+
+    valid_from = models.DateField(null=True, blank=True)
+    valid_until = models.DateField(null=True, blank=True)
+
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -128,7 +156,6 @@ class TaxConfiguration(models.Model):
         ordering = ['name']
         verbose_name = "Tax Configuration"
         verbose_name_plural = "Tax Configurations"
-
 
 class DiscountConfiguration(models.Model):
     DISCOUNT_TYPE_CHOICES = [
