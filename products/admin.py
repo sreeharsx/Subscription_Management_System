@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Product, SubscriptionPlan, TaxConfiguration, DiscountConfiguration
+from .models import Product, ProductVariant, SubscriptionPlan, TaxConfiguration, DiscountConfiguration
 
 
 @admin.register(Product)
@@ -8,7 +8,12 @@ class ProductAdmin(admin.ModelAdmin):
     list_filter = ['is_active']
     search_fields = ['name']
 
-
+@admin.register(ProductVariant)
+class ProductVariantAdmin(admin.ModelAdmin):
+    list_display = ['name', 'product', 'additional_price', 'is_active']
+    list_filter = ['is_active', 'product']
+    search_fields = ['name', 'product__name']
+    
 @admin.register(SubscriptionPlan)
 class SubscriptionPlanAdmin(admin.ModelAdmin):
     list_display = ['name', 'product', 'billing_cycle', 'base_price', 'is_active']
