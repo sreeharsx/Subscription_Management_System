@@ -226,3 +226,4 @@ class Command(BaseCommand):
         self.stdout.write("Customer: username='acme'    password='acme123'")
         self.stdout.write("Customer: username='globex'  password='globex123'")
         self.stdout.write("Customer: username='initech' password='initech123'")
+

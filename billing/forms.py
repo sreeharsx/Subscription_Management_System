@@ -17,3 +17,4 @@ class RunBillingForm(forms.Form):
         label="Billing Date",
         help_text="Generate invoices for all active subscriptions due on or before this date."
     )
+
