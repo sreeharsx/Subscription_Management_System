@@ -5,8 +5,17 @@ from .models import Product, SubscriptionPlan, TaxConfiguration, DiscountConfigu
 class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
-        fields = ['name', 'description', 'is_active']
-        widgets = {'description': forms.Textarea(attrs={'rows': 3})}
+        fields = [
+            'name',
+            'product_type',
+            'sales_price',
+            'cost_price',
+            'description',
+            'is_active'
+        ]
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 3}),
+        }
 
 
 class SubscriptionPlanForm(forms.ModelForm):
