@@ -359,3 +359,71 @@ class CompleteWorkflowTestCase(TestCase):
         self.assertEqual(invoice.amount_paid, Decimal('500.00'))
         self.assertEqual(invoice.status, 'PARTIALLY_PAID')
 
+    def test_invoice_detail_can_pay_context_and_visibility(self):
+        """
+        Regression test for D1: Ensure can_pay is passed to invoice_detail
+        and the 'Record Payment' button is rendered for staff, but not for regular customer.
+        """
+        quotation = Quotation.objects.create(
+            customer=self.cust1,
+            plan=self.plan,
+            tax=self.tax,
+            discount=self.discount,
+            status='ACCEPTED'
+        )
+        sub = create_subscription_from_quotation(quotation)
+        invoice, _ = generate_invoice_for_subscription(sub, billing_date=date(2026, 10, 31))
+
+        # Staff user sees Record Payment button and can_pay=True
+        client = Client()
+        client.login(username='staff', password='staffpass123')
+        res = client.get(f'/billing/invoices/{invoice.pk}/')
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(res.context['can_pay'])
+        self.assertContains(res, 'Record Payment')
+
+        # Customer user sees invoice detail but NOT Record Payment button
+        client.login(username='cust1', password='custpass123')
+        res_cust = client.get(f'/billing/invoices/{invoice.pk}/')
+        self.assertEqual(res_cust.status_code, 200)
+        self.assertFalse(res_cust.context['can_pay'])
+        self.assertNotContains(res_cust, 'Record Payment')
+
+    def test_payment_list_total_received_aggregation(self):
+        """
+        Regression test for D2: Ensure payment_list passes total_received
+        aggregated across completed payments.
+        """
+        quotation = Quotation.objects.create(
+            customer=self.cust1,
+            plan=self.plan,
+            tax=self.tax,
+            discount=self.discount,
+            status='ACCEPTED'
+        )
+        sub = create_subscription_from_quotation(quotation)
+        invoice, _ = generate_invoice_for_subscription(sub, billing_date=date(2026, 10, 31))
+
+        record_payment(
+            invoice=invoice,
+            amount=Decimal("300.00"),
+            payment_method="UPI",
+            payment_date=date(2026, 10, 31),
+            recorded_by=self.staff_user
+        )
+        record_payment(
+            invoice=invoice,
+            amount=Decimal("200.00"),
+            payment_method="CASH",
+            payment_date=date(2026, 10, 31),
+            recorded_by=self.staff_user
+        )
+
+        client = Client()
+        client.login(username='staff', password='staffpass123')
+        res = client.get('/billing/payments/')
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.context['total_received'], Decimal('500.00'))
+        self.assertContains(res, '500.00')
+
+

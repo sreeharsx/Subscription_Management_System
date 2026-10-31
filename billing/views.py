@@ -62,9 +62,11 @@ def invoice_list(request):
 def invoice_detail(request, pk):
     invoice = get_invoice_for_user(request, pk)
     payments = invoice.payments.all()
+    can_pay = request.user.is_staff or request.user.is_superuser
     return render(request, 'billing/invoice_detail.html', {
         'invoice': invoice,
         'payments': payments,
+        'can_pay': can_pay,
     })
 
 
@@ -136,4 +138,8 @@ def payment_list(request):
         'invoice__subscription__customer__user',
         'recorded_by',
     ).all()
-    return render(request, 'billing/payment_list.html', {'payments': payments})
+    total_received = Payment.objects.filter(status='COMPLETED').aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    return render(request, 'billing/payment_list.html', {
+        'payments': payments,
+        'total_received': total_received,
+    })
