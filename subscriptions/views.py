@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
+from accounts.services import log_activity
 from .models import Subscription
 
 
@@ -53,6 +54,7 @@ def subscription_pause(request, pk):
         if sub.can_transition_to('PAUSED'):
             sub.status = 'PAUSED'
             sub.save()
+            log_activity(request.user, 'SUBSCRIPTION_PAUSED', sub, f"Subscription SUB-{sub.pk:04d} paused.")
             messages.success(request, "Subscription paused.")
         else:
             messages.error(request, f"Cannot pause a {sub.status} subscription.")
@@ -67,6 +69,7 @@ def subscription_resume(request, pk):
         if sub.can_transition_to('ACTIVE'):
             sub.status = 'ACTIVE'
             sub.save()
+            log_activity(request.user, 'SUBSCRIPTION_RESUMED', sub, f"Subscription SUB-{sub.pk:04d} resumed to active.")
             messages.success(request, "Subscription resumed.")
         else:
             messages.error(request, f"Cannot resume a {sub.status} subscription.")
@@ -81,6 +84,7 @@ def subscription_cancel(request, pk):
         if sub.can_transition_to('CANCELLED'):
             sub.status = 'CANCELLED'
             sub.save()
+            log_activity(request.user, 'SUBSCRIPTION_CANCELLED', sub, f"Subscription SUB-{sub.pk:04d} cancelled.")
             messages.success(request, "Subscription cancelled.")
         else:
             messages.error(request, f"Cannot cancel a {sub.status} subscription.")

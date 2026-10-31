@@ -18,3 +18,23 @@ class CustomerProfile(models.Model):
         verbose_name = "Customer Profile"
         verbose_name_plural = "Customer Profiles"
         ordering = ['-created_at']
+
+
+class AuditLog(models.Model):
+    actor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='audit_logs')
+    action = models.CharField(max_length=100)
+    model_name = models.CharField(max_length=100)
+    object_id = models.CharField(max_length=100, blank=True)
+    object_repr = models.CharField(max_length=255, blank=True)
+    details = models.TextField(blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        actor_name = self.actor.username if self.actor else "System"
+        return f"[{self.timestamp.strftime('%Y-%m-%d %H:%M')}] {actor_name}: {self.action} on {self.object_repr}"
+
+    class Meta:
+        verbose_name = "Audit Log"
+        verbose_name_plural = "Audit Logs"
+        ordering = ['-timestamp']
+

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}403 Forbidden | BrightLoop{% endblock %}
+{% block page_title %}Access Denied{% endblock %}
+{% block content %}
+<div class="row justify-content-center pt-5">
+  <div class="col-md-6 text-center">
+    <div class="form-card py-5">
+      <div class="stat-icon mx-auto mb-3" style="width: 64px; height: 64px; font-size: 2rem; background: #fee2e2; color: #dc2626;">
+        <i class="bi bi-shield-x"></i>
+      </div>
+      <h3 class="fw-bold text-danger mb-2">403 — Forbidden</h3>
+      <p class="text-muted mb-4">
+        You do not have permission to access this resource. Customer records are strictly isolated.
+      </p>
+      <div class="d-flex justify-content-center gap-2">
+        <a href="{% url 'dashboard:index' %}" class="btn btn-primary">
+          <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

@@ -166,6 +166,9 @@
       <i class="bi bi-lightning-charge"></i> Run Billing
     </a>
     <div class="sidebar-section mt-2">Admin</div>
+    <a href="{% url 'accounts:activity_log' %}" class="nav-link {% if 'activity' in request.path %}active{% endif %}">
+      <i class="bi bi-clock-history"></i> Activity Log
+    </a>
     <a href="/admin/" class="nav-link">
       <i class="bi bi-shield-lock"></i> Django Admin
     </a>
@@ -197,9 +200,12 @@
       {% else %}
         <span class="badge bg-secondary">Customer</span>
       {% endif %}
-      <a href="{% url 'accounts:logout' %}" class="btn btn-sm btn-outline-secondary">
-        <i class="bi bi-box-arrow-right"></i> Logout
-      </a>
+      <form method="post" action="{% url 'accounts:logout' %}" class="d-inline mb-0">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-box-arrow-right"></i> Logout
+        </button>
+      </form>
     </div>
   </div>
 
