@@ -3,11 +3,55 @@
 {% block page_title %}Subscriptions{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-  <h5 class="fw-semibold mb-0">Subscriptions</h5>
+  <div>
+    <h5 class="fw-semibold mb-0">Subscriptions</h5>
+    <small class="text-muted">Showing {{ subscriptions|length }} subscription{{ subscriptions|length|pluralize }}</small>
+  </div>
 </div>
+
+<!-- Search & Status Filter Card -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body py-3">
+    <form method="get" class="row g-2 align-items-center">
+      <div class="col-md-5">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
+          <input type="text" name="q" class="form-control border-start-0" placeholder="Search by customer, email, plan, or SUB ID..." value="{{ search_query }}">
+        </div>
+      </div>
+      <div class="col-md-3">
+        <select name="status" class="form-select form-select-sm">
+          <option value="">All Statuses</option>
+          {% for code, label in status_choices %}
+            <option value="{{ code }}" {% if status_filter == code %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4 d-flex gap-2">
+        <button type="submit" class="btn btn-sm btn-primary">Search</button>
+        {% if search_query or status_filter %}
+          <a href="{% url 'subscriptions:subscription_list' %}" class="btn btn-sm btn-outline-secondary">Clear Filters</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+
 <div class="table-card">
   <table class="table table-hover mb-0">
-    <thead><tr><th>#</th><th>Customer</th><th>Plan</th><th>Cycle</th><th>Status</th><th>Start</th><th>Next Billing</th><th>Actions</th></tr></thead>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Customer</th>
+        <th>Plan</th>
+        <th>Cycle</th>
+        <th>Status</th>
+        <th>Start</th>
+        <th>End Date</th>
+        <th>Next Billing</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
     <tbody>
       {% for sub in subscriptions %}
       <tr>
@@ -17,14 +61,22 @@
         <td>{{ sub.billing_cycle }}</td>
         <td><span class="status-badge badge-{{ sub.status|lower }}">{{ sub.get_status_display }}</span></td>
         <td>{{ sub.start_date }}</td>
+        <td>{{ sub.end_date|default:"&mdash;" }}</td>
         <td>{{ sub.next_billing_date }}</td>
         <td><a href="{% url 'subscriptions:subscription_detail' sub.pk %}" class="btn btn-sm btn-outline-secondary">View</a></td>
       </tr>
       {% empty %}
-      <tr><td colspan="8" class="text-center text-muted py-4">No subscriptions yet.</td></tr>
+      <tr>
+        <td colspan="9" class="text-center text-muted py-4">
+          {% if search_query or status_filter %}
+            No subscriptions found matching your criteria. <a href="{% url 'subscriptions:subscription_list' %}" class="text-decoration-none">Clear Filters</a>
+          {% else %}
+            No subscriptions yet.
+          {% endif %}
+        </td>
+      </tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
 {% endblock %}
-
