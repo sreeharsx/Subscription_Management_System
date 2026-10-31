@@ -9,6 +9,8 @@ urlpatterns = [
     path('create/', views.product_create, name='product_create'),
     path('<int:pk>/', views.product_detail, name='product_detail'),
     path('<int:pk>/edit/', views.product_edit, name='product_edit'),
+    path('<int:product_pk>/variants/create/', views.variant_create, name='variant_create'),
+    path('variants/<int:pk>/edit/', views.variant_edit, name='variant_edit'),
     # Plans
     path('plans/', views.plan_list, name='plan_list'),
     path('plans/create/', views.plan_create, name='plan_create'),

@@ -1,13 +1,28 @@
 from django import forms
-from .models import Product, SubscriptionPlan, TaxConfiguration, DiscountConfiguration
+from .models import Product,ProductVariant, SubscriptionPlan, TaxConfiguration, DiscountConfiguration
 
 
 class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
-        fields = ['name', 'description', 'is_active']
-        widgets = {'description': forms.Textarea(attrs={'rows': 3})}
-
+        fields = [
+            'name',
+            'product_type',
+            'sales_price',
+            'cost_price',
+            'description',
+            'is_active'
+        ]
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 3}),
+        }
+class ProductVariantForm(forms.ModelForm):
+    class Meta:
+        model = ProductVariant
+        fields = ['name', 'additional_price', 'description', 'is_active']
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 3}),
+        }
 
 class SubscriptionPlanForm(forms.ModelForm):
     class Meta:
