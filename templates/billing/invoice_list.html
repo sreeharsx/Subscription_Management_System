@@ -24,8 +24,10 @@
         <td>{{ inv.due_date }}</td>
         <td>
           <a href="{% url 'billing:invoice_detail' inv.pk %}" class="btn btn-sm btn-outline-secondary">View</a>
-          {% if user.is_staff or user.is_superuser and inv.status != 'PAID' and inv.status != 'VOID' %}
-          <a href="{% url 'billing:record_payment' inv.pk %}" class="btn btn-sm btn-primary">Pay</a>
+          {% if user.is_staff or user.is_superuser %}
+            {% if inv.status != 'PAID' and inv.status != 'VOID' %}
+            <a href="{% url 'billing:record_payment' inv.pk %}" class="btn btn-sm btn-primary">Pay</a>
+            {% endif %}
           {% endif %}
         </td>
       </tr>
